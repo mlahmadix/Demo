@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/HelloWorld.dir/src/main.cpp.o  -o HelloWorld -rdynamic deps/libdynamic.so deps/libcanj1939.so deps/libfifo.so deps/libarchive.a -Wl,-rpath,/home/mlahmadx/Desktop/cmake2/deps: 

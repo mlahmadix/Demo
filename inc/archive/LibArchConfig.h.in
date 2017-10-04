@@ -1,0 +1,5 @@
+// the configured options and settings for Tutorial
+#define ARCH_VERSION_MAJOR "@ARCH_VERSION_MAJOR@"
+#define ARCH_VERSION_MINOR "@ARCH_VERSION_MINOR@"
+#define ARCH_VERSION_PATCH "@ARCH_VERSION_PATCH@"
+#define ARCH_VERSION "@ARCH_VERSION@"

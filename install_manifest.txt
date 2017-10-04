@@ -1,0 +1,4 @@
+/home/mlahmadx/Desktop/cmake2/exe/HelloWorld
+/home/mlahmadx/Desktop/cmake2/exe/libdynamic.so
+/home/mlahmadx/Desktop/cmake2/exe/libfifo.so
+/home/mlahmadx/Desktop/cmake2/exe/libcanj1939.so

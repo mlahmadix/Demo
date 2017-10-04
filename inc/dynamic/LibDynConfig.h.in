@@ -1,0 +1,6 @@
+// the configured options and settings for Tutorial
+#define DYNAMIC_VERSION_MAJOR "@DYN_VERSION_MAJOR@"
+#define DYNAMIC_VERSION_MINOR "@DYN_VERSION_MINOR@"
+#define DYNAMIC_VERSION_PATCH "@DYN_VERSION_PATCH@"
+#define DYNAMIC_VERSION       "@DYN_VERSION@"
+

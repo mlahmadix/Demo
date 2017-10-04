@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/mlahmadx/Desktop/cmake2/deps/dynamic/lib_dynamic.cpp
+iostream
+-
+stdio.h
+-
+dynamic/lib_dynamic.h
+/home/mlahmadx/Desktop/cmake2/deps/dynamic/dynamic/lib_dynamic.h
+
+deps/../inc/dynamic/LibDynConfig.h
+
+deps/../inc/dynamic/lib_dynamic.h
+LibDynConfig.h
+deps/../inc/dynamic/LibDynConfig.h
+

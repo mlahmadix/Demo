@@ -1,0 +1,5 @@
+// the configured options and settings for Tutorial
+#define HelloWorld_VERSION_MAJOR    "@HelloWorld_VERSION_MAJOR@"
+#define HelloWorld_VERSION_MINOR    "@HelloWorld_VERSION_MINOR@"
+#define HelloWorld_VERSION_REVISION "@HelloWorld_VERSION_REVISION@"
+#define HelloWorld_VERSION_TAG      "@HelloWorld_VERSION_TAG@"
