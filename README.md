@@ -1,3 +1,5 @@
+[![Build Status : ](https://api.travis-ci.org/mlahmadix/Demo.svg?branch=master)](https://github.com/mlahmadix/Demo)
+
 to build project :
 
  ./build_project.sh
