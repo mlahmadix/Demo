@@ -1,0 +1,44 @@
+os:
+    - linux
+    - osx
+sudo: false
+language: cpp
+cache: ccache
+
+env:
+    global:
+        - LINUX=true
+
+compiler:
+    - gcc
+    - clang
+
+matrix:
+    exclude:
+          compiler: gcc
+
+addons:
+    apt:
+        packages:
+            - g++-4.8
+            - cmake-data
+            - cmake
+            - clang-format-3.8
+
+before_install:
+
+    - if [ $TRAVIS_OS_NAME = linux ]; then export LINUX=true; fi
+install:
+
+
+before_script:
+    - coverage=OFF
+
+
+# how to build
+script:
+  # Check coding style
+  - if $LINUX; then (git ls-files | grep -E '\.[ch](pp)?$' |  xargs clang-format-3.8 -i &&
+        git diff --exit-code || { git reset --hard; false; }); fi
+
+after_success:
