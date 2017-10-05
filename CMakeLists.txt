@@ -51,6 +51,20 @@ add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC})
 #link step
 target_link_libraries(HelloWorld ${DYN_LIB} ${STA_LIB})
 
+enable_testing()
+
+# indicates the location of the boost installation tree.
+# hard-coded for our simple example.
+set(BOOST_INCLUDE_DIRS $boost_installation_prefix/include)
+
+# creates the executable
+add_executable(UnitTest auto_unit_test/MyTest.cpp)
+# indicates the include paths
+target_include_directories(UnitTest PRIVATE ${BOOST_INCLUDE_DIRS})
+
+# declares a test with our executable
+add_test(NAME test1 COMMAND UnitTest)
+
 #install step
-install (TARGETS HelloWorld DESTINATION ${CMAKE_BINARY_DIR}/exe)
+install (TARGETS HelloWorld  DESTINATION ${CMAKE_BINARY_DIR}/exe)
 
