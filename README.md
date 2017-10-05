@@ -1,4 +1,4 @@
-[![Build Status : ](https://api.travis-ci.org/mlahmadix/Demo.svg?branch=master)](https://github.com/mlahmadix/Demo)
+[![Build Status : ](https://api.travis-ci.org/mlahmadix/Demo.svg?branch=master)](https://api.travis-ci.org/mlahmadix/Demo.svg)
 
 to build project :
 
