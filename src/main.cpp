@@ -2,8 +2,10 @@
 #include "archive/lib_archive.h"
 #include "dynamic/lib_dynamic.h"
 #include "can/can_drv.h"
+#include "sharedMem/lib_sharedMem.h"
 
 using namespace std;
+using namespace boost::interprocess;
 
 #define duiTotalFifoElem 100
 
@@ -24,6 +26,12 @@ int main(){
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
       CanInfDrv->CanSendMsg(TxCanMsg);
+      //shared Memory
+      Shared_Memory * Shm = new Shared_Memory(open_or_create, "shmName", 1024, "mysegment");
+      //write in shm
+      Shm->write_in_shared_memory(5);
+      //read from shm
+      cout << "SharedMemory value:" << Shm->read_from_sharedMemory() << endl;
       while(1);
       delete CanInfDrv;
       cout << "Good Bye" << endl;
