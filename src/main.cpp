@@ -24,6 +24,7 @@ int main(){
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
       CanInfDrv->CanSendMsg(TxCanMsg);
+      while(1);
       delete CanInfDrv;
       cout << "Good Bye" << endl;
       return 0;

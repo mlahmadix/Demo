@@ -12,7 +12,8 @@ pucCanFifoName((char*)FifoName.c_str())
 {
 	CANFifo = new Fifo(CANFIFODepth, (const char*)"Fifo-CAN");
 	initCanDevice();
-	
+	StopCanInterf = false;
+	pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 }
 
 CANDrv::CANDrv(std::string FifoName, std::string CanInterface):
@@ -52,6 +53,8 @@ CANDrv::~CANDrv()
 {
 	//shutdown associated CAN socket
 	close(sockCanfd);
+	//join Reception Thread
+	pthread_join(Can_Thread, NULL);
 	//delete CAN Reception FIFO
 	delete CANFifo;
 }
@@ -74,10 +77,10 @@ bool CANDrv::initCanDevice()
 	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
 }
 
-bool CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
+int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 {
-	if(read(sockCanfd, &RxCanMsg, sizeof(RxCanMsg)))
-	printCanFrame(RxCanMsg);
+	read(sockCanfd, &RxCanMsg, sizeof(struct can_frame));
+	return (sizeof(struct can_frame));
 }
 
 bool CANDrv::CanSendMsg(struct can_frame TxCanMsg)
@@ -85,31 +88,41 @@ bool CANDrv::CanSendMsg(struct can_frame TxCanMsg)
 	if(write(sockCanfd, &TxCanMsg, sizeof(TxCanMsg)) == sizeof(TxCanMsg)){
 		cout << "CAN Msg sent successfully" << endl;
 		printCanFrame(TxCanMsg);
+		return true;
 	}else{
 		cout << "Fail to send CAN Msg" << endl;
+		return false;
 	}
 }
 
 void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 {
+	CANDrv * CanDrvInst = static_cast<CANDrv *>(context);
 	struct can_frame RxCanMsg;
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 3000000;
-	while(!StopCanInterf)
+	int retval = 0;
+	while(!CanDrvInst->StopCanInterf)
 	{
-		CanRecvMsg(RxCanMsg); //CAN message received
-		//Put in appropriate CAN FIFO for later processing
-		//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
-		//Should be done in Locked Context
-		if(CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == true) {
-			cout << "CAN Message queued successfully" << endl;
-	    } else {
-			cout << "Fail to queue CAN message" << endl;
-	    }
+		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
+			CanDrvInst->StopCanInterf = true;
+			retval = 1;
+		}else {
+			CanDrvInst->printCanFrame(RxCanMsg);
+			//Put in appropriate CAN FIFO for later processing
+			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
+			//Should be done in Locked Context
+			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == true) {
+				cout << "CAN Message queued successfully" << endl;
+			} else {
+				cout << "Fail to queue CAN message" << endl;
+			}
+		}
 	    //unlock Context
 		nanosleep(&CanRecvTimer, NULL);
 	}
+	pthread_exit(&retval);
 }
 
 bool CANDrv::printCanFrame(struct can_frame TxCanMsg)

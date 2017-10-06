@@ -40,27 +40,29 @@ set_property(TARGET ${projectname} PROPERTY CXX_STANDARD 14)
 set_property(TARGET ${projectname} PROPERTY CXX_EXTENSIONS OFF)
 set_property(TARGET ${projectname} PROPERTY CXX_STANDARD_REQUIRED ON)
 
+#Check if Boost is available on system
+find_package(Boost 1.36.0)
+if (NOT ${Boost_FOUND})
+    message( FATAL_ERROR "libboost-dev was not found : ${Boost_NOT_FOUND_MESSAGE}" )
+else ()
+	include_directories(${Boost_INCLUDE_DIRS})
+endif(NOT ${Boost_FOUND})
+
 #add CMake components subdirectories
 add_subdirectory(deps)
 #include directory
 include_directories("inc")
 
 #compiling step
-add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC})
+add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC} ${Boost_INCLUDE_DIRS})
 
 #link step
-target_link_libraries(HelloWorld ${DYN_LIB} ${STA_LIB})
+target_link_libraries(HelloWorld ${DYN_LIB} ${STA_LIB} ${Boost_LIBRARIES})
 
 enable_testing()
 
-# indicates the location of the boost installation tree.
-# hard-coded for our simple example.
-set(BOOST_INCLUDE_DIRS $boost_installation_prefix/include)
-
 # creates the executable
 add_executable(UnitTest auto_unit_test/MyTest.cpp)
-# indicates the include paths
-target_include_directories(UnitTest PRIVATE ${BOOST_INCLUDE_DIRS})
 
 # declares a test with our executable
 add_test(NAME test1 COMMAND UnitTest)

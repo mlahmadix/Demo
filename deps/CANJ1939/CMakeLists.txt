@@ -12,7 +12,7 @@ include_directories("../inc")
 add_library(canj1939 SHARED ${CAN_SRC} ${CAN_HDR})
 
 #link with FIFO static library
-target_link_libraries(canj1939 ${FIFO_LIB})
+target_link_libraries(canj1939 ${FIFO_LIB} pthread)
 
 #install the shared library
 install(TARGETS canj1939 DESTINATION ${CMAKE_BINARY_DIR}/exe)

@@ -10,7 +10,7 @@ $CMAKE -DLOGDEBUG=$LOGGING -DFILECREAT=$FILETRC . >/dev/null 2>&1
 if [ $? -eq 0 ]
 then
 	echo "50%  ---- building project"
-	$MAKE  >/dev/null 2>&1
+	$MAKE >/dev/null 2>./make.log
 	if [ $? -eq 0 ]
 	then
 		$MAKE install >/dev/null 2>&1
@@ -23,7 +23,7 @@ then
 		fi
 	else
 		echo "100% ---- Failed Building project"
-		echo "100% ---- Please fix all errors"
+		echo "100% ---- Please see make.log"
 		exit 2
 	fi
 else

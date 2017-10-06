@@ -2,6 +2,7 @@
 
 echo "0%   ---- project build cleanup"
 make clean
+rm -rf make.log
 echo "20%  ---- cleanup cmake install files"
 rm -rf */*/cmake_install.cmake */cmake_install.cmake cmake_install.cmake  CTestTestfile.cmake
 rm -rf */*/install_manifest.txt */install_manifest.txt install_manifest.txt

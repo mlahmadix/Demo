@@ -20,7 +20,7 @@ class CANDrv
 		CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate);
 		CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags);
 		~CANDrv();
-		bool CanRecvMsg(struct can_frame &RxCanMsg);
+		int CanRecvMsg(struct can_frame &RxCanMsg);
 		bool CanSendMsg(struct can_frame TxCanMsg);
 		bool setCanFilters(struct can_filter * AppliedFilters);
 		bool StopCanInterf;
@@ -41,7 +41,7 @@ class CANDrv
 		unsigned short uwGetCanBaudrate() { return mulBaudrate;}
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}
-		void * pvthCanReadRoutine_Exe (void* context);
+		static void * pvthCanReadRoutine_Exe (void* context);
 		bool printCanFrame(struct can_frame TxCanMsg);
 		bool initCanDevice();
 };
