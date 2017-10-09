@@ -3,6 +3,14 @@
 
 #include "LibDynConfig.h"
 
-int ALOGX(char* tag, int priority, char* message);
+enum {
+    CeFile_Idle = -1,
+    CeFile_LoggingSuccess = 0, 
+    CeFile_LoggingDisabled,
+    CeFile_LoggingFailed,
+    CeFile_UndefinedState
+};
+
+int iLog_eCreateFile_Exe(const char * cpucFilePath);
 
 #endif

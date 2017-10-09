@@ -1,5 +1,5 @@
 #include <iostream>
-#include "archive/lib_archive.h"
+#include "logger/lib_logger.h"
 #include "dynamic/lib_dynamic.h"
 #include "can/can_drv.h"
 #include "sharedMem/lib_sharedMem.h"
@@ -26,7 +26,7 @@ int main(){
       cout << "This is my new Software" << endl;
       int dyn = ALOGX((char*)"MAIN", 3, (char*)"Dynamic ALOGX Function called");
       cout << "Dynamic Return: " << dyn << endl;
-      int arc = iArc_eCreateFile_Exe("HelloLog.txt");
+      int arc = iLog_eCreateFile_Exe("HelloLog.txt");
       cout << "Archive Return: " << arc << endl;
       //Initialize CAN Interface
       CANDrv * CanInfDrv = new CANDrv("CANFIFO-VCan0");

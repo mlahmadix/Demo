@@ -11,7 +11,6 @@ mshmName(name),
 mShmSize(size),
 mShmStatus(CeShm_OK)
 {
-   shared_memory_object::remove(mshmName);
    cout << "BOOST Shared Memory CTOR" << endl;
    mShmobj = shared_memory_object(open_or_create, (char*)mshmName, read_write);
    

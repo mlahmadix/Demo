@@ -16,14 +16,14 @@ configure_file (
 #define Project Tree directories
 set (MAIN_INC
      inc/TutorialConfig.h
-     inc/archive/lib_archive.h
+     inc/logger/lib_logger.h
      inc/dynamic/lib_dynamic.h
      inc/can/can_drv.h
      inc/sharedMem/lib_sharedMem.h)
 
 #define Sources, dlls and libs
 set (DYN_LIB dynamic canj1939 fifo sharedmem)
-set (STA_LIB archive)
+set (STA_LIB logger)
 set (MAIN_SRC
      src/main.cpp)
 
