@@ -74,7 +74,7 @@ int Shared_Memory::sharedMemoryWrite(void * BufferData, int Offset, int size)
      //Map the whole shared memory in this process
    mapped_region region(mShmobj,read_write, Offset, size);
    
-   if(region.get_address() != NULL) {
+   if(region.get_address() == NULL) {
 	   	SharedMemorySetStatus(CeShm_WriteErr);
 		return CeShm_WriteErr;
    }
