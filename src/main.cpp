@@ -7,6 +7,8 @@
 using namespace std;
 using namespace boost::interprocess;
 
+#define TAG "Main"
+
 #define duiTotalFifoElem 100
 
 struct can_frame TxMsg;
@@ -20,14 +22,11 @@ struct ProgramPosition{
 	double longitude;
 };
 
-struct ProgramPosition TestPosWr, TestPosRd;
-
 int main(){
-      cout << "This is my new Software" << endl;
-      int dyn = ALOGX((char*)"MAIN", 3, (char*)"Dynamic ALOGX Function called");
-      cout << "Dynamic Return: " << dyn << endl;
-      int arc = iLog_eCreateFile_Exe("HelloLog.txt");
-      cout << "Archive Return: " << arc << endl;
+
+      ALOGI(TAG, "Main Program Init");
+      int dyn = iLog_eCreateFile_Exe("HelloLog.txt");
+      ALOGI(TAG, "Dynamic return %d", dyn);
       //Initialize CAN Interface
       CANDrv * CanInfDrv = new CANDrv("CANFIFO-VCan0");
       struct can_frame TxCanMsg;
@@ -37,34 +36,34 @@ int main(){
       CanInfDrv->CanSendMsg(TxCanMsg);
       
 	  //Shared memory testing Structure
+	  struct ProgramPosition TestPosWr, TestPosRd;
 	  memset(TestPosWr.name, 0, 100);
 	  strcpy(&TestPosWr.name[0], "SharedMemoryProgram\0");
 	  TestPosWr.pid = getpid();
 	  TestPosWr.latitude = 10.11223344;
 	  TestPosWr.longitude = 36.11223344;
-	  
-      cout << "Write Struct Name = " << (char*)TestPosWr.name << endl;
-      cout << "Write Struct Pid = " << std::dec << (int)TestPosWr.pid << endl;
-      cout << "Write Struct Latitude = " << (double)TestPosWr.latitude << endl;
-      cout << "Write Struct Longitude = " << (double)TestPosWr.longitude << endl;
+	  ALOGD(TAG, "Write Struct Name = %s", (char*)TestPosWr.name);
+	  ALOGD(TAG, "Write Struct Pid = %d", (int)TestPosWr.pid);
+	  ALOGD(TAG, "Write Struct Latitude = %.4f", (double)TestPosWr.latitude);
+	  ALOGD(TAG, "Write Struct Longitude = %.4f", (double)TestPosWr.longitude);
 	  
 	  //Create a new Shm
-      Shared_Memory * Shm = new Shared_Memory("shmNew1", 1024);
+      Shared_Memory * Shm = new Shared_Memory((char*)"shmNew1", 1024);
       
       //write in shm
       Shm->sharedMemoryWrite((void *)&TestPosWr, 0, sizeof(TestPosWr));
       
       //read from shm
       int Rdsize = Shm->sharedMemoryRead(&TestPosRd, 0, sizeof(TestPosRd));
-      cout << "Read SHM Data Amount = " << std::dec << Rdsize << endl;
-      cout << "Read Struct Name = " << TestPosRd.name << endl;
-      cout << "Read Struct Pid = " << TestPosRd.pid << endl;
-      cout << "Read Struct Latitude = " << TestPosRd.latitude << endl;
-      cout << "Read Struct Longitude = " << TestPosRd.longitude << endl;
+      ALOGD(TAG, "Read SHM Data Amount = %d", Rdsize);
+      ALOGD(TAG, "Read Struct Name = %s", TestPosRd.name);
+      ALOGD(TAG, "Read Struct Pid = %d", TestPosRd.pid);
+      ALOGD(TAG, "Read Struct Latitude = %.4f", TestPosRd.latitude);
+      ALOGD(TAG, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       
       
       while(1);
       delete CanInfDrv;
-      cout << "Good Bye" << endl;
+      ALOGI(TAG, "Good Bye");
       return 0;
 }

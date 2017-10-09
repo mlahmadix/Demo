@@ -3,6 +3,9 @@
 
 #include "LibLoggerConfig.h"
 
-int ALOGX(char* tag, int priority, char* message);
+void ALOGE(char* tag, char* message, ...);
+void ALOGW(char* tag, char* message, ...);
+void ALOGI(char* tag, char* message, ...);
+void ALOGD(char* tag, char* message, ...);
 
 #endif
