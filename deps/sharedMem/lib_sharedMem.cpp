@@ -2,16 +2,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include "sharedMem/lib_sharedMem.h"
+#include "logger/lib_logger.h"
 
 using namespace std;
 using namespace boost::interprocess;
+#define TAG "ShmDrv"
 
 Shared_Memory::Shared_Memory(char * name, size_t size):
 mshmName(name),
 mShmSize(size),
 mShmStatus(CeShm_OK)
 {
-   cout << "BOOST Shared Memory CTOR" << endl;
+   ALOGD(TAG, __FUNCTION__, "BOOST Shared Memory CTOR");
    mShmobj = shared_memory_object(open_or_create, (char*)mshmName, read_write);
    
    //set the size of the memory object
@@ -20,22 +22,21 @@ mShmStatus(CeShm_OK)
 
 Shared_Memory::~Shared_Memory()
 {
-    cout << "BOOST Shared Memory DTOR" << endl;
+	ALOGD(TAG, __FUNCTION__, "BOOST Shared Memory DTOR");
 	bool removed = shared_memory_object::remove(mshmName);
-	cout << "BOOST Shared Memory removed = " 
-	     << removed << endl;
+	ALOGI(TAG, __FUNCTION__, "BOOST Shared Memory removed = %d", removed);
 }
 
 int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, int size)
 {
 	if( (size <= 0) || (size > mShmSize) ) {
-		cerr << "Wrong passed Size" << endl;
+		ALOGE(TAG, __FUNCTION__, "Wrong passed Size = %d", size);
 		SharedMemorySetStatus(CeShm_WrongSize);
 		return CeShm_WrongSize;
 	}
 	
 	if( (Offset < 0) || ((Offset + size) >= mShmSize) ) {
-		cerr << "Wrong passed Offset" << endl;
+		ALOGE(TAG, __FUNCTION__, "Wrong passed Offset = %d", Offset);
 		SharedMemorySetStatus(CeShm_WrongOffset);
 		return CeShm_WrongOffset;
 	}
@@ -48,7 +49,7 @@ int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, int size)
 	
 	if(mem_map == NULL) {
 		SharedMemorySetStatus(CeShm_ReadErr);
-		cerr << "Cannot read From SHM" << endl;
+		ALOGE(TAG, __FUNCTION__, "Cannot read From SHM");
 		return CeShm_ReadErr;
 	}
 	
@@ -60,13 +61,13 @@ int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, int size)
 int Shared_Memory::sharedMemoryWrite(void * BufferData, int Offset, int size)
 {
 	if( (size <= 0) || (size > mShmSize) ) {
-		cerr << "Wrong passed Size" << endl;
+		ALOGE(TAG, __FUNCTION__, "Wrong passed Size = %d", size);
 		SharedMemorySetStatus(CeShm_WrongSize);
 		return CeShm_WrongSize;
 	}
 	
 	if( (Offset < 0) || ((Offset + size) >= mShmSize) ) {
-		cerr << "Wrong passed Offset" << endl;
+		ALOGE(TAG, __FUNCTION__, "Wrong passed Offset = %d", Offset);
 		SharedMemorySetStatus(CeShm_WrongOffset);
 		return CeShm_WrongOffset;
 	}
