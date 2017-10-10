@@ -1,8 +1,10 @@
 #include <iostream>
 #include <fcntl.h>
 #include "can/can_drv.h"
+#include "logger/lib_logger.h"
 
 using namespace std;
+#define TAG "CANDrv"
 
 CANDrv::CANDrv(std::string FifoName):
 mCANStatus(true),
@@ -25,7 +27,7 @@ mulBaudrate(250000),
 pucCanInfName((char*)CanInterface.c_str()),
 pucCanFifoName((char*)FifoName.c_str())
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)"Fifo-CAN");
+	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
 	initCanDevice();
 }
 
@@ -37,7 +39,7 @@ mulBaudrate(baudrate),
 pucCanInfName((char*)CanInterface.c_str()),
 pucCanFifoName((char*)FifoName.c_str())
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)"Fifo-CAN");
+	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
 	initCanDevice();
 }
 
@@ -49,7 +51,7 @@ mulBaudrate(baudrate),
 pucCanInfName((char*)CanInterface.c_str()),
 pucCanFifoName((char*)FifoName.c_str())
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)"Fifo-CAN");
+	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
 	initCanDevice();
 }
 
@@ -99,11 +101,11 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 bool CANDrv::CanSendMsg(struct can_frame &TxCanMsg)
 {
 	if(write(sockCanfd, &TxCanMsg, sizeof(TxCanMsg)) == sizeof(TxCanMsg)){
-		cout << "CAN Msg sent successfully" << endl;
+		ALOGD(TAG, __FUNCTION__, "CAN Msg sent successfully");
 		printCanFrame(TxCanMsg);
 		return true;
 	}else{
-		cout << "Fail to send CAN Msg" << endl;
+		ALOGE(TAG, __FUNCTION__, "Fail to send CAN Msg");
 		return false;
 	}
 }
@@ -125,9 +127,9 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
 			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == true) {
-				cout << "CAN Message queued successfully" << endl;
+				ALOGD(TAG, __FUNCTION__, "CAN Message queued successfully");
 			} else {
-				cout << "Fail to queue CAN message" << endl;
+				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
 			}
 		}
 	    //unlock Context
@@ -138,11 +140,10 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 
 bool CANDrv::printCanFrame(struct can_frame TxCanMsg)
 {
-	cout << "ArbId = 0x" << std::hex << TxCanMsg.can_id << endl;
-	cout << "Data Length Code = " << (int)TxCanMsg.can_dlc << endl;
+	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%8X", TxCanMsg.can_id);
+	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
 	for(int j=0; j < TxCanMsg.can_dlc; j++) {
-		cout << "Data index : " << j << " "
-			 << "value : 0x" << std::hex <<(int)TxCanMsg.data[j] << endl;
+		ALOGD(TAG, __FUNCTION__, "Data index =%d \t Value=0x%02X", j, (int)TxCanMsg.data[j]);
 	}
 }
 

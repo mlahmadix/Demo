@@ -38,7 +38,6 @@ void ALOGX(std::string tag, std::string func, std::string message, va_list vargs
 {
 	if ( p <= CeLoggerDebug ){
 		#ifndef LOGDEBUG
-			cout << "Logging Feature is not enabled" << endl;
 			return;
 		#endif
 	}

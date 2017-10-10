@@ -27,8 +27,7 @@ bool bIgnitionSet = false;
 void SignalHandler(int signo)
 {
 	if(signo == SIGINT){
-		cout << "Main" << "\t" << __FUNCTION__
-		     << "Signal catched" << endl;
+		ALOGI(TAG, __FUNCTION__, "Interrupt Signal catched");
 		bIgnitionSet = true;
 	}
 }
