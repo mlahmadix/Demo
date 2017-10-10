@@ -15,4 +15,7 @@ set (LOGGER_HDR
 
 include_directories("../inc")
 
-add_library(logger STATIC ${LOGGER_SRC} ${LOGGER_HDR})
+add_library(logger SHARED ${LOGGER_SRC} ${LOGGER_HDR})
+
+#install the shared library
+install(TARGETS logger DESTINATION ${CMAKE_BINARY_DIR}/exe)

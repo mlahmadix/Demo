@@ -1,23 +1,25 @@
 #include <iostream>
+#include <fcntl.h>
 #include "can/can_drv.h"
 
 using namespace std;
 
 CANDrv::CANDrv(std::string FifoName):
-StopCanInterf(true),
+mCANStatus(true),
+sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(250000),
 pucCanInfName("vcan0"),
 pucCanFifoName((char*)FifoName.c_str())
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)"Fifo-CAN");
+	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
 	initCanDevice();
-	StopCanInterf = false;
 	pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 }
 
 CANDrv::CANDrv(std::string FifoName, std::string CanInterface):
-StopCanInterf(true),
+mCANStatus(false),
+sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(250000),
 pucCanInfName((char*)CanInterface.c_str()),
@@ -28,7 +30,8 @@ pucCanFifoName((char*)FifoName.c_str())
 }
 
 CANDrv::CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate):
-StopCanInterf(true),
+mCANStatus(false),
+sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(baudrate),
 pucCanInfName((char*)CanInterface.c_str()),
@@ -39,7 +42,8 @@ pucCanFifoName((char*)FifoName.c_str())
 }
 
 CANDrv::CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
-StopCanInterf(true),
+mCANStatus(false),
+sockCanfd(-1),
 mulModeFlags(ModeFlags),
 mulBaudrate(baudrate),
 pucCanInfName((char*)CanInterface.c_str()),
@@ -53,6 +57,7 @@ CANDrv::~CANDrv()
 {
 	//shutdown associated CAN socket
 	close(sockCanfd);
+	sockCanfd = -1;
 	//join Reception Thread
 	pthread_join(Can_Thread, NULL);
 	//delete CAN Reception FIFO
@@ -73,17 +78,25 @@ bool CANDrv::initCanDevice()
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
 	addr.can_family = PF_CAN;
+	/* Set CAN Socket to Non-Blocking
+	 * So we can interrupt the read routing */
+	int flags = fcntl(sockCanfd, F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(sockCanfd, F_SETFL, flags);
 	/* bind socket to the can0 interface */
 	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
 }
 
 int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 {
-	read(sockCanfd, &RxCanMsg, sizeof(struct can_frame));
-	return (sizeof(struct can_frame));
+	if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
+		return -1;
+	} else{
+		return (sizeof(struct can_frame));
+	}
 }
 
-bool CANDrv::CanSendMsg(struct can_frame TxCanMsg)
+bool CANDrv::CanSendMsg(struct can_frame &TxCanMsg)
 {
 	if(write(sockCanfd, &TxCanMsg, sizeof(TxCanMsg)) == sizeof(TxCanMsg)){
 		cout << "CAN Msg sent successfully" << endl;
@@ -102,12 +115,10 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 3000000;
-	int retval = 0;
-	while(!CanDrvInst->StopCanInterf)
+	while(CanDrvInst->mCANStatus)
 	{
 		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
-			CanDrvInst->StopCanInterf = true;
-			retval = 1;
+			;
 		}else {
 			CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing
@@ -122,7 +133,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	    //unlock Context
 		nanosleep(&CanRecvTimer, NULL);
 	}
-	pthread_exit(&retval);
+	pthread_exit(NULL);
 }
 
 bool CANDrv::printCanFrame(struct can_frame TxCanMsg)
@@ -133,4 +144,14 @@ bool CANDrv::printCanFrame(struct can_frame TxCanMsg)
 		cout << "Data index : " << j << " "
 			 << "value : 0x" << std::hex <<(int)TxCanMsg.data[j] << endl;
 	}
+}
+
+bool CANDrv::getCANStatus()
+{
+	return mCANStatus;
+}
+
+void CANDrv::StopCANDriver()
+{
+	mCANStatus = false;
 }

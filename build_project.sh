@@ -2,7 +2,7 @@
 
 CMAKE=$(which cmake)
 MAKE=$(which make)
-LOGGING="OFF"
+LOGGING="ON"
 FILETRC="OFF"
 
 echo "0%   ---- configuring project environment"

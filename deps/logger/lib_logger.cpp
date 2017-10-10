@@ -21,7 +21,7 @@ const char * TabPrio[CeMaxPriorities] ={
 };
 
 template <priority p>
-void ALOGX(char* tag, char* message, va_list vargs)
+void ALOGX(std::string tag, std::string func, std::string message, va_list vargs)
 {
 	if ( p <= CeLoggerDebug ){
 		#ifndef LOGDEBUG
@@ -33,38 +33,38 @@ void ALOGX(char* tag, char* message, va_list vargs)
 	char BufferCore[1024]={0};
 	va_list vlist;
 	va_copy(vlist, vargs);
-	vsprintf(BufferCore, message, vlist);
-    sprintf(buffer,"%s\t%s\t%s",tag, TabPrio[p], BufferCore);
+	vsprintf(BufferCore, message.c_str(), vlist);
+    sprintf(buffer,"%s\t%s\t%s\t%s",tag.c_str(), func.c_str(), TabPrio[p], BufferCore);
     cout << buffer << endl;
     va_end(vlist);
 }
 
 //Generic Logging Function based on Message Priority
-void ALOGE(char* tag, char* message, ...)
+void ALOGE(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message);
-	ALOGX<CeLoggerError>(tag, message, ap);
+    va_start(ap, message.c_str());
+	ALOGX<CeLoggerError>(tag, func, message, ap);
 	va_end(ap);
 }
-void ALOGW(char* tag, char* message, ...)
+void ALOGW(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message);
-	ALOGX<CeLoggerWarn>(tag, message, ap);
+    va_start(ap, message.c_str());
+	ALOGX<CeLoggerWarn>(tag, func, message, ap);
 	va_end(ap);
 }
-void ALOGI(char* tag, char* message, ...)
+void ALOGI(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message);
-	ALOGX<CeLoggerInfo>(tag, message, ap);
+    va_start(ap, message.c_str());
+	ALOGX<CeLoggerInfo>(tag, func, message, ap);
 	va_end(ap);
 }
-void ALOGD(char* tag, char* message, ...)
+void ALOGD(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message);
-	ALOGX<CeLoggerDebug>(tag, message, ap);
+    va_start(ap, message.c_str());
+	ALOGX<CeLoggerDebug>(tag, func, message, ap);
 	va_end(ap);
 }

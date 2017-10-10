@@ -21,14 +21,16 @@ class CANDrv
 		CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags);
 		~CANDrv();
 		int CanRecvMsg(struct can_frame &RxCanMsg);
-		bool CanSendMsg(struct can_frame TxCanMsg);
+		bool CanSendMsg(struct can_frame &TxCanMsg);
 		bool setCanFilters(struct can_filter * AppliedFilters);
-		bool StopCanInterf;
+		bool getCANStatus();
+		void StopCANDriver();
 	
 	private:
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
 		#define CANFilterSupported 10
 		Fifo * CANFifo;
+		bool mCANStatus;
 		int sockCanfd;
 		unsigned long mulModeFlags;
 		unsigned short mulBaudrate;

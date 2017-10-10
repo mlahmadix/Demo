@@ -3,9 +3,9 @@
 
 #include "LibLoggerConfig.h"
 
-void ALOGE(char* tag, char* message, ...);
-void ALOGW(char* tag, char* message, ...);
-void ALOGI(char* tag, char* message, ...);
-void ALOGD(char* tag, char* message, ...);
+void ALOGE(std::string tag, std::string func, std::string message, ...);
+void ALOGW(std::string tag, std::string func, std::string message, ...);
+void ALOGI(std::string tag, std::string func, std::string message, ...);
+void ALOGD(std::string tag, std::string func, std::string message, ...);
 
 #endif

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <csignal>
+#include <errno.h>
 #include "logger/lib_logger.h"
 #include "dynamic/lib_dynamic.h"
 #include "can/can_drv.h"
@@ -11,9 +13,7 @@ using namespace boost::interprocess;
 
 #define duiTotalFifoElem 100
 
-struct can_frame TxMsg;
-struct can_frame RxMsg;
-unsigned int uiRxMsgDlc;
+struct can_frame TxCanMsg;
 
 struct ProgramPosition{
 	char name[100];
@@ -22,14 +22,29 @@ struct ProgramPosition{
 	double longitude;
 };
 
+bool bIgnitionSet = false;
+
+void SignalHandler(int signo)
+{
+	if(signo == SIGINT){
+		cout << "Main" << "\t" << __FUNCTION__
+		     << "Signal catched" << endl;
+		bIgnitionSet = true;
+	}
+}
+
 int main(){
 
-      ALOGI(TAG, "Main Program Init");
+      ALOGI(TAG, __FUNCTION__, "Main Program Init");
       int dyn = iLog_eCreateFile_Exe("HelloLog.txt");
-      ALOGI(TAG, "Dynamic return %d", dyn);
+      ALOGI(TAG, __FUNCTION__, "Dynamic return %d", dyn);
+      struct sigaction a;
+	  a.sa_handler = SignalHandler;
+	  a.sa_flags = 0;
+	  sigemptyset( &a.sa_mask );
+	  sigaction(SIGINT, &a, NULL );
       //Initialize CAN Interface
       CANDrv * CanInfDrv = new CANDrv("CANFIFO-VCan0");
-      struct can_frame TxCanMsg;
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
@@ -42,10 +57,10 @@ int main(){
 	  TestPosWr.pid = getpid();
 	  TestPosWr.latitude = 10.11223344;
 	  TestPosWr.longitude = 36.11223344;
-	  ALOGD(TAG, "Write Struct Name = %s", (char*)TestPosWr.name);
-	  ALOGD(TAG, "Write Struct Pid = %d", (int)TestPosWr.pid);
-	  ALOGD(TAG, "Write Struct Latitude = %.4f", (double)TestPosWr.latitude);
-	  ALOGD(TAG, "Write Struct Longitude = %.4f", (double)TestPosWr.longitude);
+	  ALOGD(TAG, __FUNCTION__, "Write Struct Name = %s", (char*)TestPosWr.name);
+	  ALOGD(TAG, __FUNCTION__, "Write Struct Pid = %d", (int)TestPosWr.pid);
+	  ALOGD(TAG, __FUNCTION__, "Write Struct Latitude = %.4f", (double)TestPosWr.latitude);
+	  ALOGD(TAG, __FUNCTION__, "Write Struct Longitude = %.4f", (double)TestPosWr.longitude);
 	  
 	  //Create a new Shm
       Shared_Memory * Shm = new Shared_Memory((char*)"shmNew1", 1024);
@@ -55,15 +70,18 @@ int main(){
       
       //read from shm
       int Rdsize = Shm->sharedMemoryRead(&TestPosRd, 0, sizeof(TestPosRd));
-      ALOGD(TAG, "Read SHM Data Amount = %d", Rdsize);
-      ALOGD(TAG, "Read Struct Name = %s", TestPosRd.name);
-      ALOGD(TAG, "Read Struct Pid = %d", TestPosRd.pid);
-      ALOGD(TAG, "Read Struct Latitude = %.4f", TestPosRd.latitude);
-      ALOGD(TAG, "Read Struct Longitude = %.4f", TestPosRd.longitude);
+      ALOGD(TAG, __FUNCTION__, "Read SHM Data Amount = %d", Rdsize);
+      ALOGD(TAG, __FUNCTION__, "Read Struct Name = %s", TestPosRd.name);
+      ALOGD(TAG, __FUNCTION__, "Read Struct Pid = %d", TestPosRd.pid);
+      ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
+      ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       
       
-      while(1);
-      delete CanInfDrv;
-      ALOGI(TAG, "Good Bye");
+      while(bIgnitionSet == false);
+      CanInfDrv->StopCANDriver();
+      sleep(2);
+      delete Shm;
+	  delete CanInfDrv;
+      ALOGI(TAG, __FUNCTION__, "Good Bye");
       return 0;
 }
