@@ -7,6 +7,15 @@
 using namespace std;
 namespace pt = boost::posix_time;
 
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+
 enum priority {
 	CeLoggerDebug = 0,
 	CeLoggerInfo,
@@ -20,6 +29,13 @@ const char * TabPrio[CeMaxPriorities] ={
 	"INF",
 	"WRN",
 	"ERR"
+};
+
+const char * PrioColours[CeMaxPriorities]={
+	KWHT,
+	KGRN,
+	KYEL,
+	KRED
 };
 
 void ALOG_GetTimestamp(std::string &timestamp)
@@ -49,7 +65,7 @@ void ALOGX(std::string tag, std::string func, std::string message, va_list vargs
 	ALOG_GetTimestamp(timestamp);
 	vsprintf(BufferCore, message.c_str(), vlist);
     sprintf(buffer,"%s\t%s\t%s\t%s\t%s",timestamp.c_str(), tag.c_str(), func.c_str(), TabPrio[p], BufferCore);
-    cout << buffer << endl;
+    cout << PrioColours[p] << buffer << endl;
     va_end(vlist);
 }
 

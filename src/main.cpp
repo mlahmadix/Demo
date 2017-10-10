@@ -75,7 +75,6 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       
-      
       while(bIgnitionSet == false);
       CanInfDrv->StopCANDriver();
       sleep(2);
