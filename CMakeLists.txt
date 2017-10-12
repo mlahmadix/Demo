@@ -8,11 +8,6 @@ set (HelloWorld_VERSION_REVISION 1)
 set (HelloWorld_VERSION_TAG 1)
 set (HelloWorldVersion "${HelloWorld_VERSION_MAJOR}.${HelloWorld_VERSION_MINOR}.${HelloWorld_VERSION_REVISION}.${HelloWorld_VERSION_TAG}")
 
-#version configuration file
-configure_file (
-  "inc/TutorialConfig.h.in"
-  "inc/TutorialConfig.h")
-
 #define Project Tree directories
 set (MAIN_INC
      inc/TutorialConfig.h
@@ -53,6 +48,10 @@ endif(NOT ${Boost_FOUND})
 add_subdirectory(deps)
 #include directory
 include_directories("inc")
+
+#include auto-generated directory
+include_directories(${CMAKE_BUILD_DIRECTOR}/inc)
+
 
 #compiling step
 add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC} ${Boost_INCLUDE_DIRS})

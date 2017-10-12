@@ -1,7 +1,7 @@
 #ifndef __LIB_FIFO_H__
 #define __LIB_FIFO_H__
 
-#include "LibFifoConfig.h"
+#include "fifo/LibFifoConfig.h"
 
 class Fifo {
 	

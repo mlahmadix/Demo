@@ -2,7 +2,8 @@
 
 vcan_exist=`lsmod |grep -ni vcan`
 prog_run=0
-PWD=`pwd`
+PWD=$(pwd)
+INSTALL_PATH=$PWD/build/exe/
 if [ "$vcan_exist" != "" ]
 then
 	echo "VCAN module already installed and loaded"
@@ -65,8 +66,8 @@ then
 	echo "Launching Main App"
 	echo "export needed DLL to be able to launch the Main App"
 	echo $PWD
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/exe/
-	$PWD/exe/HelloWorld
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$INSTALL_PATH
+	$INSTALL_PATH/HelloWorld
 	exit #?
 else
 	echo "couldn't launch Main App"

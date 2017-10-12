@@ -1,7 +1,7 @@
 #ifndef __LIB_HEADERS_H__
 #define __LIB_HEADERS_H__
 
-#include "LibDynConfig.h"
+#include "dynamic/LibDynConfig.h"
 
 enum {
     CeFile_Idle = -1,

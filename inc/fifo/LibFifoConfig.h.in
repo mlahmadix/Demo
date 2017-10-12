@@ -1,6 +1,0 @@
-// the configured options and settings for Tutorial
-#define FIFO_VERSION_MAJOR "@FIFO_VERSION_MAJOR@"
-#define FIFO_VERSION_MINOR "@FIFO_VERSION_MINOR@"
-#define FIFO_VERSION_PATCH "@FIFO_VERSION_PATCH@"
-#define FIFO_VERSION       "@FIFO_VERSION@"
-

@@ -3,11 +3,6 @@ set (DYN_VERSION_MINOR 0)
 set (DYN_VERSION_PATCH 999)
 set (DYN_VERSION "${DYN_VERSION_MAJOR}.${DYN_VERSION_MINOR}.${DYN_VERSION_PATCH}")
 
-#version auto-generated header file
-configure_file (
-  "../inc/dynamic/LibDynConfig.h.in"
-  "../inc/dynamic/LibDynConfig.h"
-  )
 #define Sources and Headers
 set (DYN_SRC dynamic/lib_dynamic.cpp)
 set (DYN_HDR
