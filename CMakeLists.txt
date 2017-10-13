@@ -17,8 +17,7 @@ set (MAIN_INC
      inc/sharedMem/lib_sharedMem.h)
 
 #define Sources, dlls and libs
-set (DYN_LIB dynamic canj1939 fifo sharedmem)
-set (STA_LIB logger)
+set (STA_LIB logger dynamic canj1939 fifo sharedmem)
 set (MAIN_SRC
      src/main.cpp)
 
@@ -57,7 +56,7 @@ include_directories(${CMAKE_BUILD_DIRECTOR}/inc)
 add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC} ${Boost_INCLUDE_DIRS})
 
 #link step
-target_link_libraries(HelloWorld ${DYN_LIB} ${STA_LIB} ${Boost_LIBRARIES} -lpthread -lrt)
+target_link_libraries(HelloWorld ${STA_LIB} ${Boost_LIBRARIES} -lpthread -lrt)
 
 enable_testing()
 

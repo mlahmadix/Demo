@@ -9,7 +9,4 @@ set (SHM_HDR ../inc/sharedMem/lib_sharedMem.h)
 include_directories("../inc")
 
 #compile the shared library
-add_library(sharedmem SHARED ${SHM_SRC} ${SHM_HDR})
-
-#install the shared library
-install(TARGETS sharedmem DESTINATION ${CMAKE_BINARY_DIR}/exe)
+add_library(sharedmem STATIC ${SHM_SRC} ${SHM_HDR})

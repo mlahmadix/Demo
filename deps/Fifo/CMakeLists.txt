@@ -10,7 +10,4 @@ set (FIFO_HDR
 
 include_directories("../inc")
 
-add_library(fifo SHARED ${FIFO_SRC} ${FIFO_HDR})
-
-#install the shared library
-install(TARGETS fifo DESTINATION ${CMAKE_BINARY_DIR}/exe)
+add_library(fifo STATIC ${FIFO_SRC} ${FIFO_HDR})

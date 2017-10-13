@@ -13,7 +13,4 @@ set (DYN_HDR
 include_directories("../inc")
 
 #compile the shared library
-add_library(dynamic SHARED ${DYN_SRC} ${DYN_HDR})
-
-#install the shared library
-install(TARGETS dynamic DESTINATION ${CMAKE_BINARY_DIR}/exe)
+add_library(dynamic STATIC ${DYN_SRC} ${DYN_HDR})
