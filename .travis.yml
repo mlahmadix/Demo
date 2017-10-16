@@ -16,8 +16,15 @@ addons:
       - george-edison55-precise-backports
       - boost-latest
     packages:
+      - gcc-4.8
+      - g++-4.8
       - libboost1.55-all-dev
       - cmake-data
       - cmake
+      
+notifications:
+ email:
+  on_success: never
+  on_failure: always
 
 script: cmake . && make
