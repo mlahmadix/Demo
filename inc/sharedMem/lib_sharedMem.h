@@ -19,14 +19,14 @@ class Shared_Memory
 			CeShm_WriteErr    = -6,
 			CeShm_KO          = -7,
 		};
-        Shared_Memory(char * name, size_t size);
+        Shared_Memory(std::string name, size_t size);
         ~Shared_Memory();
-        int sharedMemoryRead(void * BufferData, int Offset, int size);
-        int sharedMemoryWrite(void * BufferData, int Offset, int size);
-        CeShmStatus SharedMemoryGetStatus() { return mShmStatus; }
+        int sharedMemoryRead(void * BufferData, int Offset, size_t size);
+        int sharedMemoryWrite(void * BufferData, int Offset, size_t size);
+        inline CeShmStatus SharedMemoryGetStatus() { return mShmStatus; }
     private:
-		void SharedMemorySetStatus(CeShmStatus status) { mShmStatus = status; }
-        char* mshmName;
+		inline void SharedMemorySetStatus(CeShmStatus status) { mShmStatus = status; }
+        std::string mshmName;
         boost::interprocess::shared_memory_object mShmobj;
         size_t mShmSize;
         CeShmStatus mShmStatus;

@@ -7,17 +7,16 @@
 using namespace std;
 #define TAG "FiFoDrv"
 
-Fifo::Fifo(unsigned int uiSize, const char * pucName):
+Fifo::Fifo(unsigned int uiSize, string pucName):
 miTail(-1),
 miHead(-1),
 muiSize(uiSize),
 muiCount(0),
-miIndex(-1)
+miIndex(-1),
+mFifoName(pucName)
 {
 	ALOGD(TAG, __FUNCTION__, "FiFo class CTOR");
 	ALOGI(TAG, __FUNCTION__, "CFIFO Lib Version: %s", FIFO_VERSION);
-	memset(mFifoName,0, FifoNameSize);
-	memcpy(mFifoName, pucName, strlen(pucName));
 	ALOGD(TAG, __FUNCTION__, "FIFO Name = %s", mFifoName);
 	if(muiSize > FifoDefaultSize)
 		muiSize = FifoDefaultSize;
@@ -27,7 +26,7 @@ miIndex(-1)
 Fifo::~Fifo()
 {
 	ALOGD(TAG, __FUNCTION__, "FiFo class DTOR");
-	for(int i = 0; i < muiCount; i++){
+	for(unsigned int i = 0; i < muiCount; i++){
 		free(pmFifoRAM[i].pucBuf);
 	}
 	muiSize = 0;

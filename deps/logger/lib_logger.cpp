@@ -73,28 +73,28 @@ void ALOGX(std::string tag, std::string func, std::string message, va_list vargs
 void ALOGE(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message.c_str());
+    va_start(ap, (char*)message.c_str());
 	ALOGX<CeLoggerError>(tag, func, message, ap);
 	va_end(ap);
 }
 void ALOGW(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message.c_str());
+    va_start(ap, (char*)message.c_str());
 	ALOGX<CeLoggerWarn>(tag, func, message, ap);
 	va_end(ap);
 }
 void ALOGI(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message.c_str());
+    va_start(ap, (char*)message.c_str());
 	ALOGX<CeLoggerInfo>(tag, func, message, ap);
 	va_end(ap);
 }
 void ALOGD(std::string tag, std::string func, std::string message, ...)
 {
 	va_list ap;
-    va_start(ap, message.c_str());
+    va_start(ap, (char*)message.c_str());
 	ALOGX<CeLoggerDebug>(tag, func, message, ap);
 	va_end(ap);
 }

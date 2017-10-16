@@ -10,7 +10,7 @@ class Fifo {
 			 void * pucBuf;
 			 unsigned int iBufSize;
 		 };
-	     Fifo(unsigned int uiSize, const char * pucName);
+	     Fifo(unsigned int uiSize, std::string pucName);
 	     ~Fifo();
 	     bool EnqueueMessage(void * pucBuff, unsigned int uiSize);
 	     bool DequeueMessage(void * pucBuff, unsigned int * uiSize);
@@ -24,7 +24,7 @@ class Fifo {
 		 unsigned int muiSize;
 		 unsigned int muiCount;
 		 int miIndex;
-		 char mFifoName[FifoNameSize];
+		 std::string mFifoName;
 		 bool isFifoEmpty() { return (!muiCount)? true:false; }
 	     bool isFifoFull() { return (muiCount == muiSize)? true:false; }
 	     int CurrFifoIndex() { return muiCount;}

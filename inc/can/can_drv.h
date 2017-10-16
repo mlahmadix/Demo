@@ -33,10 +33,9 @@ class CANDrv
 		bool mCANStatus;
 		int sockCanfd;
 		unsigned long mulModeFlags;
-		unsigned short mulBaudrate;
+		unsigned long mulBaudrate;
 		unsigned int muiCanInfIndex;
-		char * pucCanInfName;
-		char * pucCanFifoName;
+		std::string pucCanInfName;
 		struct can_filter mCANfilters[CANFilterSupported];
 		pthread_t Can_Thread;
 		pthread_mutex_t Can_Mutex;
@@ -44,8 +43,9 @@ class CANDrv
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}
 		static void * pvthCanReadRoutine_Exe (void* context);
-		bool printCanFrame(struct can_frame TxCanMsg);
-		bool initCanDevice();
+		void printCanFrame(struct can_frame TxCanMsg);
+		bool initCanDevice(std::string CanInfName);
+		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 };
 
 #endif

@@ -8,13 +8,13 @@ using namespace std;
 using namespace boost::interprocess;
 #define TAG "ShmDrv"
 
-Shared_Memory::Shared_Memory(char * name, size_t size):
+Shared_Memory::Shared_Memory(std::string name, size_t size):
 mshmName(name),
 mShmSize(size),
 mShmStatus(CeShm_OK)
 {
    ALOGD(TAG, __FUNCTION__, "BOOST Shared Memory CTOR");
-   mShmobj = shared_memory_object(open_or_create, (char*)mshmName, read_write);
+   mShmobj = shared_memory_object(open_or_create, mshmName.c_str(), read_write);
    
    //set the size of the memory object
    mShmobj.truncate(mShmSize);
@@ -23,11 +23,11 @@ mShmStatus(CeShm_OK)
 Shared_Memory::~Shared_Memory()
 {
 	ALOGD(TAG, __FUNCTION__, "BOOST Shared Memory DTOR");
-	bool removed = shared_memory_object::remove(mshmName);
+	bool removed = shared_memory_object::remove(mshmName.c_str());
 	ALOGI(TAG, __FUNCTION__, "BOOST Shared Memory removed = %d", removed);
 }
 
-int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, int size)
+int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, size_t size)
 {
 	if( (size <= 0) || (size > mShmSize) ) {
 		ALOGE(TAG, __FUNCTION__, "Wrong passed Size = %d", size);
@@ -58,7 +58,7 @@ int Shared_Memory::sharedMemoryRead(void * BufferData, int Offset, int size)
 	return size;
 }
 
-int Shared_Memory::sharedMemoryWrite(void * BufferData, int Offset, int size)
+int Shared_Memory::sharedMemoryWrite(void * BufferData, int Offset, size_t size)
 {
 	if( (size <= 0) || (size > mShmSize) ) {
 		ALOGE(TAG, __FUNCTION__, "Wrong passed Size = %d", size);

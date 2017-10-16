@@ -6,53 +6,58 @@
 using namespace std;
 #define TAG "CANDrv"
 
-CANDrv::CANDrv(std::string FifoName):
+CANDrv::CANDrv(string FifoName):
 mCANStatus(true),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(250000),
-pucCanInfName("vcan0"),
-pucCanFifoName((char*)FifoName.c_str())
+mulBaudrate(static_cast<unsigned long>(250000))
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
-	initCanDevice();
-	pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	if(!initCanDevice("vcan0")) {
+		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+		setCANStatus(false);
+	}else {
+		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	}
 }
 
-CANDrv::CANDrv(std::string FifoName, std::string CanInterface):
+CANDrv::CANDrv(string FifoName, string CanInterface):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(250000),
-pucCanInfName((char*)CanInterface.c_str()),
-pucCanFifoName((char*)FifoName.c_str())
+mulBaudrate(static_cast<unsigned long>(250000))
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
-	initCanDevice();
+	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	if(!initCanDevice(CanInterface)) {
+		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+		setCANStatus(false);
+	}
 }
 
-CANDrv::CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate):
+CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(baudrate),
-pucCanInfName((char*)CanInterface.c_str()),
-pucCanFifoName((char*)FifoName.c_str())
+mulBaudrate(baudrate)
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
-	initCanDevice();
+	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	if(!initCanDevice(CanInterface)) {
+		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+		setCANStatus(false);
+	}
 }
 
-CANDrv::CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
+CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
-mulBaudrate(baudrate),
-pucCanInfName((char*)CanInterface.c_str()),
-pucCanFifoName((char*)FifoName.c_str())
+mulBaudrate(baudrate)
 {
-	CANFifo = new Fifo(CANFIFODepth, (const char*)FifoName.c_str());
-	initCanDevice();
+	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	if(!initCanDevice(CanInterface)) {
+		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+		setCANStatus(false);
+	}
 }
 
 CANDrv::~CANDrv()
@@ -66,7 +71,7 @@ CANDrv::~CANDrv()
 	delete CANFifo;
 }
 
-bool CANDrv::initCanDevice()
+bool CANDrv::initCanDevice(string CanInfName)
 {
 	struct ifreq ifr;
 	struct sockaddr_can addr;
@@ -75,7 +80,7 @@ bool CANDrv::initCanDevice()
 	/* open CAN_RAW socket */
 	sockCanfd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
 	/* convert interface string "can0" into interface index */
-	strcpy(ifr.ifr_name, pucCanInfName);
+	strcpy(ifr.ifr_name, CanInfName.c_str());
 	ioctl(sockCanfd, SIOCGIFINDEX, &ifr);
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
@@ -87,6 +92,8 @@ bool CANDrv::initCanDevice()
 	fcntl(sockCanfd, F_SETFL, flags);
 	/* bind socket to the can0 interface */
 	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
+	//Fix-me Correct status to be returned
+	return true;
 }
 
 int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
@@ -138,7 +145,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	pthread_exit(NULL);
 }
 
-bool CANDrv::printCanFrame(struct can_frame TxCanMsg)
+void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 {
 	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%8X", TxCanMsg.can_id);
 	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
@@ -154,5 +161,5 @@ bool CANDrv::getCANStatus()
 
 void CANDrv::StopCANDriver()
 {
-	mCANStatus = false;
+	setCANStatus(false);
 }

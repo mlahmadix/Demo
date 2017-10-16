@@ -14,10 +14,11 @@ set (MAIN_INC
      inc/logger/lib_logger.h
      inc/dynamic/lib_dynamic.h
      inc/can/can_drv.h
-     inc/sharedMem/lib_sharedMem.h)
+     inc/sharedMem/lib_sharedMem.h
+     inc/signal/lib_signal.h)
 
 #define Sources, dlls and libs
-set (STA_LIB logger dynamic canj1939 fifo sharedmem)
+set (STA_LIB logger dynamic canj1939 fifo sharedmem signal)
 set (MAIN_SRC
      src/main.cpp)
 
@@ -31,9 +32,8 @@ if(LOGDEBUG)
 add_definitions (-DLOGDEBUG)
 endif()
 
-set_property(TARGET ${projectname} PROPERTY CXX_STANDARD 14)
-set_property(TARGET ${projectname} PROPERTY CXX_EXTENSIONS OFF)
-set_property(TARGET ${projectname} PROPERTY CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-varargs")
 
 #Check if Boost is available on system
 find_package(Boost 1.36.0)
