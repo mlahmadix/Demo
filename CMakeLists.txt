@@ -18,7 +18,7 @@ set (MAIN_INC
      inc/signal/lib_signal.h)
 
 #define Sources, dlls and libs
-set (STA_LIB logger dynamic canj1939 fifo sharedmem signal)
+set (STA_LIB logger dynamic canj1939 fifo sharedmem signal inout)
 set (MAIN_SRC
      src/main.cpp)
 
