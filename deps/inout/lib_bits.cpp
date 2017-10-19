@@ -44,7 +44,9 @@ void RegBits::SetBitFieldValue (unsigned long BitPos, unsigned long BitLen, unsi
 	ulFinalValue &= static_cast<unsigned long>(BitValue << BitPos);
 	unsigned long ulRegisterValue = RegValueCast(mulRegisterAddress);
 	ulRegisterValue |= ulFinalValue;
+	mRegMutex.lock();
 	RegValueCast(mulRegisterAddress) = ulRegisterValue;
+	mRegMutex.unlock();
 	
 }
 
@@ -53,5 +55,7 @@ void RegBits::ResetBitFieldValue (unsigned long BitPos, unsigned long BitLen)
 	ALOGD(TAG, __FUNCTION__, "BitPos = 0x%08X    BitLen= 0x%08X   value= 0x%08X", BitPos, BitLen);
 	unsigned long ulRegisterValue = RegValueCast(mulRegisterAddress);
 	ulRegisterValue &= static_cast<unsigned long>(~(BitFieldMaskCalculate(BitPos, BitLen)) & 0xFFFFFFFF);
+	mRegMutex.lock();
 	RegValueCast(mulRegisterAddress) = ulRegisterValue;
+	mRegMutex.unlock();
 }
