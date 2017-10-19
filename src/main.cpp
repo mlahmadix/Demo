@@ -44,8 +44,9 @@ int main(){
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
       
       //initialize GPIO1 Register Value
-      unsigned long ulGPIO1 = 0x00000000;
+      unsigned long ulGPIO1 = 0x00000000; //MockRegister to be used as Real H/W register
       std::shared_ptr<RegBits> RegGPIO1(new RegBits((unsigned long)&ulGPIO1));
+
 	  RegGPIO1->SetBitFieldValue(4, 5, 0x15); //write 0x00000015 in Register
 	  ALOGD(TAG, __FUNCTION__, "RegBitValue = 0x%08X", RegGPIO1->getBitFieldValue (4, 5));
 	  RegGPIO1->SetBitFieldValue(10, 5, 0x15); //write 0x00005400

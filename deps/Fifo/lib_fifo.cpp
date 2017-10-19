@@ -17,7 +17,7 @@ mFifoName(pucName)
 {
 	ALOGD(TAG, __FUNCTION__, "FiFo class CTOR");
 	ALOGI(TAG, __FUNCTION__, "CFIFO Lib Version: %s", FIFO_VERSION);
-	ALOGD(TAG, __FUNCTION__, "FIFO Name = %s", mFifoName);
+	ALOGD(TAG, __FUNCTION__, "FIFO Name = %s", mFifoName.c_str());
 	if(muiSize > FifoDefaultSize)
 		muiSize = FifoDefaultSize;
 	pmFifoRAM = (struct FifoBuff*)malloc(muiSize*sizeof(struct FifoBuff));
