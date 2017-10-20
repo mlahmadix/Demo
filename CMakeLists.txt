@@ -13,16 +13,17 @@ set (MAIN_INC
      inc/TutorialConfig.h
      inc/logger/lib_logger.h
      inc/dynamic/lib_dynamic.h
-     inc/can/can_drv.h
      inc/sharedMem/lib_sharedMem.h
      inc/signal/lib_signal.h
      inc/main_app/io_mapping.h
-     inc/main_app/InOutApp.h)
+     inc/main_app/InOutApp.h
+     inc/main_app/j1939.h)
 
 #define Sources, dlls and libs
 set (STA_LIB logger dynamic canj1939 fifo sharedmem signal inout)
 set (MAIN_SRC   src/main.cpp
-				src/InOut_app.cpp)
+				src/InOut_app.cpp
+				src/j1939.cpp)
 
 if(FILECREAT)
 #add definitions
@@ -35,7 +36,7 @@ add_definitions (-DLOGDEBUG)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-varargs")
 
 #Check if Boost is available on system
 find_package(Boost 1.36.0)

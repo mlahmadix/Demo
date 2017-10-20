@@ -25,6 +25,7 @@ class CANDrv
 		bool setCanFilters(struct can_filter * AppliedFilters);
 		bool getCANStatus();
 		void StopCANDriver();
+		void printCanFrame(struct can_frame TxCanMsg);
 	
 	private:
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
@@ -43,7 +44,6 @@ class CANDrv
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}
 		static void * pvthCanReadRoutine_Exe (void* context);
-		void printCanFrame(struct can_frame TxCanMsg);
 		bool initCanDevice(std::string CanInfName);
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 };

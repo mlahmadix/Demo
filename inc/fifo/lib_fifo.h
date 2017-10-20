@@ -1,6 +1,6 @@
 #ifndef __LIB_FIFO_H__
 #define __LIB_FIFO_H__
-
+#include <mutex>
 #include "fifo/LibFifoConfig.h"
 
 class Fifo {
@@ -10,21 +10,22 @@ class Fifo {
 			 void * pucBuf;
 			 unsigned int iBufSize;
 		 };
-	     Fifo(unsigned int uiSize, std::string pucName);
+	     Fifo(unsigned int uiSize, const char * pucName);
 	     ~Fifo();
 	     bool EnqueueMessage(void * pucBuff, unsigned int uiSize);
 	     bool DequeueMessage(void * pucBuff, unsigned int * uiSize);
 
 	private:
-		#define FifoDefaultSize 100
-		#define FifoNameSize 50
+		 std::mutex mFifoMutex;
+		 #define FifoDefaultSize 100
+		 #define FifoNameSize 50
 		 struct FifoBuff * pmFifoRAM;
 		 int miTail;
 		 int miHead;
 		 unsigned int muiSize;
 		 unsigned int muiCount;
 		 int miIndex;
-		 std::string mFifoName;
+		 const char * mFifoName;
 		 bool isFifoEmpty() { return (!muiCount)? true:false; }
 	     bool isFifoFull() { return (muiCount == muiSize)? true:false; }
 	     int CurrFifoIndex() { return muiCount;}

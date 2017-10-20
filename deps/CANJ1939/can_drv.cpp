@@ -12,7 +12,8 @@ sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000))
 {
-	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice("vcan0")) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
@@ -27,7 +28,8 @@ sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000))
 {
-	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
@@ -40,7 +42,8 @@ sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(baudrate)
 {
-	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
@@ -53,7 +56,8 @@ sockCanfd(-1),
 mulModeFlags(ModeFlags),
 mulBaudrate(baudrate)
 {
-	CANFifo = new Fifo(CANFIFODepth, FifoName);
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
@@ -62,6 +66,7 @@ mulBaudrate(baudrate)
 
 CANDrv::~CANDrv()
 {
+	ALOGD(TAG, __FUNCTION__, "DTOR");
 	//shutdown associated CAN socket
 	close(sockCanfd);
 	sockCanfd = -1;
@@ -129,7 +134,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
 			;
 		}else {
-			CanDrvInst->printCanFrame(RxCanMsg);
+			//CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context

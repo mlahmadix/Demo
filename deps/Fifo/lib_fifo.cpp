@@ -7,7 +7,7 @@
 using namespace std;
 #define TAG "FiFoDrv"
 
-Fifo::Fifo(unsigned int uiSize, string pucName):
+Fifo::Fifo(unsigned int uiSize, const char * pucName):
 miTail(-1),
 miHead(-1),
 muiSize(uiSize),
@@ -17,7 +17,7 @@ mFifoName(pucName)
 {
 	ALOGD(TAG, __FUNCTION__, "FiFo class CTOR");
 	ALOGI(TAG, __FUNCTION__, "CFIFO Lib Version: %s", FIFO_VERSION);
-	ALOGD(TAG, __FUNCTION__, "FIFO Name = %s", mFifoName.c_str());
+	ALOGD(TAG, __FUNCTION__, "FIFO Name = %s", mFifoName);
 	if(muiSize > FifoDefaultSize)
 		muiSize = FifoDefaultSize;
 	pmFifoRAM = (struct FifoBuff*)malloc(muiSize*sizeof(struct FifoBuff));
@@ -37,8 +37,10 @@ Fifo::~Fifo()
 
 bool Fifo::EnqueueMessage(void * pucBuff, unsigned int uiSize)
 {
+	mFifoMutex.lock();
 	if(isFifoFull()) {
 		ALOGE(TAG, __FUNCTION__, "Fifo is Full");
+		mFifoMutex.unlock();
 		return false;
 	}
 	miIndex++;
@@ -47,18 +49,22 @@ bool Fifo::EnqueueMessage(void * pucBuff, unsigned int uiSize)
 		memcpy(pmFifoRAM[miIndex].pucBuf, pucBuff, uiSize);
 		pmFifoRAM[miIndex].iBufSize = uiSize;
 		muiCount++;
+		mFifoMutex.unlock();
 		return true;
 	} else {
 		ALOGE(TAG, __FUNCTION__, "No enough System RAM space");
 		miIndex--;
+		mFifoMutex.unlock();
 		return false;
 	}
 }
 
 bool Fifo::DequeueMessage(void * pucBuff, unsigned int * uiSize)
 {
+	mFifoMutex.lock();
 	if(isFifoEmpty()) {
 		ALOGE(TAG, __FUNCTION__, "Fifo is Empty");
+		mFifoMutex.unlock();
 		return false;
 	}
 	memcpy(pucBuff, pmFifoRAM[miIndex].pucBuf, pmFifoRAM[miIndex].iBufSize);
@@ -66,5 +72,6 @@ bool Fifo::DequeueMessage(void * pucBuff, unsigned int * uiSize)
 	free(pmFifoRAM[miIndex].pucBuf);
 	miIndex--;
 	muiCount--;
+	mFifoMutex.unlock();
 	return true;
 }

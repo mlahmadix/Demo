@@ -24,7 +24,8 @@ inline unsigned long RegBits::BitFieldMaskCalculate(unsigned long BitPos, unsign
 {
 	ALOGD(TAG, __FUNCTION__, "BitPos = 0x%08X    BitLen= 0x%08X", BitPos, BitLen);
 	unsigned long ulBitMask = 0ul;
-	for(int j=0; j < BitLen; j++) {
+	unsigned long j = 0;
+	for(j=0; j < BitLen; j++) {
 		ulBitMask |= static_cast<unsigned long>( 1 << j );
 	}
 	ulBitMask = static_cast<unsigned long>(ulBitMask << BitPos );

@@ -3,10 +3,10 @@
 #include <errno.h>
 #include "logger/lib_logger.h"
 #include "dynamic/lib_dynamic.h"
-#include "can/can_drv.h"
 #include "sharedMem/lib_sharedMem.h"
 #include "signal/lib_signal.h"
 #include "main_app/InOutApp.h"
+#include "main_app/j1939.h"
 
 using namespace std;
 using namespace boost::interprocess;
@@ -50,11 +50,11 @@ int main(){
 	  
 	  
       //Initialize CAN Interface
-      std::shared_ptr<CANDrv> CanInfDrv(new CANDrv("CANFIFO-VCan0"));
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0"));
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
-      CanInfDrv->CanSendMsg(TxCanMsg);
+      J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
 	  //Shared memory testing Structure
 	  struct ProgramPosition TestPosWr, TestPosRd;
@@ -82,7 +82,7 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       
       while(bIgnitionSet == false);
-      CanInfDrv->StopCANDriver();
+      //CanInfDrv->StopCANDriver();
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");
       return 0;
