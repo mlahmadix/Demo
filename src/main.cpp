@@ -6,7 +6,7 @@
 #include "can/can_drv.h"
 #include "sharedMem/lib_sharedMem.h"
 #include "signal/lib_signal.h"
-#include "inout/lib_bits.h"
+#include "main_app/InOutApp.h"
 
 using namespace std;
 using namespace boost::interprocess;
@@ -43,16 +43,11 @@ int main(){
       //initialize a Signal Catcher for SIGINT
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
       
-      //initialize GPIO1 Register Value
-      unsigned long ulGPIO1 = 0x00000000; //MockRegister to be used as Real H/W register
-      std::shared_ptr<RegBits> RegGPIO1(new RegBits((unsigned long)&ulGPIO1));
 
-	  RegGPIO1->SetBitFieldValue(4, 5, 0x15); //write 0x00000015 in Register
-	  ALOGD(TAG, __FUNCTION__, "RegBitValue = 0x%08X", RegGPIO1->getBitFieldValue (4, 5));
-	  RegGPIO1->SetBitFieldValue(10, 5, 0x15); //write 0x00005400
-	  ALOGD(TAG, __FUNCTION__, "RegBitValue = 0x%08X", RegGPIO1->getBitFieldValue (10, 5));
-	  RegGPIO1->ResetBitFieldValue(4, 5); //write "00000" in bit 4,5,6,7,8
-	  ALOGD(TAG, __FUNCTION__, "RegBitValue = 0x%08X", RegGPIO1->dumpRegValue()); //Result should be 0x00005400
+      std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
+
+	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_ParkOut);
+	  
 	  
       //Initialize CAN Interface
       std::shared_ptr<CANDrv> CanInfDrv(new CANDrv("CANFIFO-VCan0"));

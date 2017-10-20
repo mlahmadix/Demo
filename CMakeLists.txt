@@ -15,12 +15,14 @@ set (MAIN_INC
      inc/dynamic/lib_dynamic.h
      inc/can/can_drv.h
      inc/sharedMem/lib_sharedMem.h
-     inc/signal/lib_signal.h)
+     inc/signal/lib_signal.h
+     inc/main_app/io_mapping.h
+     inc/main_app/InOutApp.h)
 
 #define Sources, dlls and libs
 set (STA_LIB logger dynamic canj1939 fifo sharedmem signal inout)
-set (MAIN_SRC
-     src/main.cpp)
+set (MAIN_SRC   src/main.cpp
+				src/InOut_app.cpp)
 
 if(FILECREAT)
 #add definitions
@@ -33,7 +35,7 @@ add_definitions (-DLOGDEBUG)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-varargs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
 
 #Check if Boost is available on system
 find_package(Boost 1.36.0)
@@ -47,10 +49,6 @@ endif(NOT ${Boost_FOUND})
 add_subdirectory(deps)
 #include directory
 include_directories("inc")
-
-#include auto-generated directory
-include_directories(${CMAKE_BUILD_DIRECTOR}/inc)
-
 
 #compiling step
 add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC} ${Boost_INCLUDE_DIRS})

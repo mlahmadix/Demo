@@ -15,6 +15,7 @@ class RegBits
 		unsigned long getBitFieldValue (unsigned long BitPos, unsigned long BitLen);
 		void SetBitFieldValue (unsigned long BitPos, unsigned long BitLen, unsigned long BitValue);
 		void ResetBitFieldValue (unsigned long BitPos, unsigned long BitLen);
+		
 		unsigned long dumpRegValue() { return RegValueCast(mulRegisterAddress); }
 	
 };
