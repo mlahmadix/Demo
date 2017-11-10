@@ -43,6 +43,11 @@ class InOutApp
 		bool mIgnitionOut;
 		bool mLeftSignOut;
 		bool mRightSignOut;
+		/* Address for this global variables will be respectively
+			used as Registers INPUT1 and OUTPUT1 addresses
+		*/
+		unsigned long ulGPIO_INPUT1;
+		unsigned long ulGPIO_OUTPUT1;
 		GPIO_MAPPING GPIO_MAP_INPUTS1 [CeEnum_TotInputs] = {
 			{enum_Input, CeInout_LS, 0, 2, &mParkPos}   , //CeEnum_ParkIn
 			{enum_Input, CeInout_LS, 2, 2, &mIgnition}  , //CeEnum_IgnitionIn

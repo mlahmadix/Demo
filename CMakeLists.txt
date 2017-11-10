@@ -36,7 +36,7 @@ add_definitions (-DLOGDEBUG)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-varargs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
 
 #Check if Boost is available on system
 find_package(Boost 1.36.0)
