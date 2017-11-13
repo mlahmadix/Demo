@@ -34,10 +34,10 @@ class CANDrv
 		bool getCANStatus();
 		void StopCANDriver();
 		void printCanFrame(struct can_frame TxCanMsg);
+		Fifo * CANFifo;
 	private:
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
 		#define CANFilterSupported 10
-		Fifo * CANFifo;
 		bool mCANStatus;
 		int sockCanfd;
 		unsigned long mulModeFlags;

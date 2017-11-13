@@ -63,7 +63,6 @@ bool Fifo::DequeueMessage(void * pucBuff, unsigned int * uiSize)
 {
 	mFifoMutex.lock();
 	if(isFifoEmpty()) {
-		ALOGE(TAG, __FUNCTION__, "Fifo is Empty");
 		mFifoMutex.unlock();
 		return false;
 	}

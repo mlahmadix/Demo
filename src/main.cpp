@@ -24,6 +24,49 @@ struct ProgramPosition{
 	double longitude;
 };
 
+//****************************************************************************//
+//Definitions of Engine Source Addresses
+//****************************************************************************//
+#define PROP_SA  0x21
+#define ENG_SA   0x00
+#define TRANS_SA 0x03
+#define BRAKE_SA 0x0B
+
+//****************************************************************************//
+//Definition of used received PGNs
+//****************************************************************************//
+#define EEC1_PGN		0xF004 //SA : 0x00 Engine : Motorisation
+#define CCVS_PGN		0xFEF1
+#define ENG_TEMP1_PGN	0xFEEE
+#define ENG_FLD_PGN		0xFEEF
+
+//****************************************************************************//
+//J1939 Parameters
+//****************************************************************************//
+unsigned short usEngineSpeed = 0; //Engine RPM in Revolution Per Minute
+unsigned short usVehicleSpeed = 0;//Vehicle Speed in Km/h
+signed char    scCoolTemp = 0;//Engine Coolant Temperature
+unsigned short  usOilPres = 0;//Engine Oil Pressure
+//****************************************************************************//
+//J1939 Received Messages
+//****************************************************************************//
+
+/* Simple Testing Method using Linux can-utils command line cansend for each message
+ * Engine Speed (2500 RPM)    : cansend vcan0 06F00400#FF.FF.FF.20.4E.FF.FF.FF
+ * Vehicle Speed (130 Km/h)   : cansend vcan0 06FEF100#FF.00.82.FF.FF.FF.FF.FF
+ * Engine Cool. Temp (-25°C)  : cansend vcan0 06FEEE00#0F.FF.FF.FF.FF.FF.FF.FF
+ * Engine Oil Press. (500mbar): cansend vcan0 06FEEF00#FF.FF.FF.7D.FF.FF.FF.FF
+ */
+
+static const struct J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
+{
+ {EEC1_PGN,		 ENG_SA,  3, 2 ,  1, 8,  0,  0,   12000  ,  &usEngineSpeed},
+ {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,  &usVehicleSpeed},
+ {ENG_TEMP1_PGN, ENG_SA,  0, 1 ,  1, 1,  -40,-40, 210    ,  &scCoolTemp},
+ {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,  &usOilPres},
+}; 
+
+
 bool bIgnitionSet = false;
 
 void SignalHandler(int signo)
@@ -50,7 +93,7 @@ int main(){
 	  
 	  
       //Initialize CAN Interface
-      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0"));
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4));
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
@@ -80,8 +123,16 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Pid = %d", TestPosRd.pid);
       ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
-      
-      while(bIgnitionSet == false);
+      struct timespec MainDataDisplayTimer;
+      MainDataDisplayTimer.tv_sec = 3;
+	  MainDataDisplayTimer.tv_nsec = 0; 
+      while(bIgnitionSet == false){
+		  ALOGD(TAG, __FUNCTION__, "usEngineSpeed  = %d", usEngineSpeed);
+		  ALOGD(TAG, __FUNCTION__, "usVehicleSpeed = %d", usVehicleSpeed);
+		  ALOGD(TAG, __FUNCTION__, "scCoolTemp     = %d", scCoolTemp);
+		  ALOGD(TAG, __FUNCTION__, "ucOilPres      = %d", usOilPres);
+		  nanosleep(&MainDataDisplayTimer, NULL);
+	  }
       J1939LayerApp->ForceStopCAN();
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");

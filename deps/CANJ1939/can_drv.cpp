@@ -19,7 +19,6 @@ uiDefCANRecTimeout(10000)
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
-		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
@@ -39,7 +38,6 @@ uiDefCANRecTimeout(10000)
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
-		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
@@ -59,7 +57,6 @@ uiDefCANRecTimeout(10000)
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
-		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
@@ -79,7 +76,6 @@ uiDefCANRecTimeout(10000)
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
-		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
@@ -106,7 +102,6 @@ bool CANDrv::initCanDevice(string CanInfName)
 	memset(&ifr, 0x0, sizeof(ifr));
 	memset(&addr, 0x0, sizeof(addr));
 	/* open CAN_RAW socket */
-	ALOGD(TAG, __FUNCTION__, "CAN Inf Name = %s", CanInfName.c_str());
 	sockCanfd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
 	if(sockCanfd <=0) {
 		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
@@ -142,7 +137,6 @@ bool CANDrv::initCanDevice(string CanInfName)
 
 int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
 {
-	ALOGD(TAG, __FUNCTION__, "Reception Called with Timeout = %lu",timeout);
 	struct timeval tv;
 	if(timeout > 1000) { // There's seconds in timeout
 		tv.tv_sec = timeout % 1000;
@@ -200,9 +194,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
-			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == true) {
-				ALOGD(TAG, __FUNCTION__, "CAN Message queued successfully");
-			} else {
+			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == false) {
 				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
 			}
 		}
@@ -214,11 +206,17 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 
 void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 {
-	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%8X", TxCanMsg.can_id);
+	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%08X", TxCanMsg.can_id);
 	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
-	for(int j=0; j < TxCanMsg.can_dlc; j++) {
-		ALOGD(TAG, __FUNCTION__, "Data index =%d \t Value=0x%02X", j, (int)TxCanMsg.data[j]);
+	char BufferData[1024]={0};
+	char FieldVal[100]={0};
+	for(int j=0; j < (TxCanMsg.can_dlc-1); j++) {
+		sprintf(FieldVal,"0x%02X-",(int)TxCanMsg.data[j]);
+		strcat(BufferData,FieldVal);
 	}
+	sprintf(FieldVal,"0x%02X",(int)TxCanMsg.data[TxCanMsg.can_dlc-1]);
+	strcat(BufferData,FieldVal);
+	ALOGD(TAG, __FUNCTION__, "Data Buffer = %s", BufferData);
 }
 
 bool CANDrv::getCANStatus()
