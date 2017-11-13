@@ -7,10 +7,11 @@ using namespace std;
 #define TAG "CANDrv"
 
 CANDrv::CANDrv(string FifoName):
-mCANStatus(true),
+mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(static_cast<unsigned long>(250000))
+mulBaudrate(static_cast<unsigned long>(250000)),
+uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
@@ -18,6 +19,9 @@ mulBaudrate(static_cast<unsigned long>(250000))
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
+		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
+		iCANDrvInit = CeCanDrv_Init;
+		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 	}
 }
@@ -26,13 +30,19 @@ CANDrv::CANDrv(string FifoName, string CanInterface):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(static_cast<unsigned long>(250000))
+mulBaudrate(static_cast<unsigned long>(250000)),
+uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
+	}else {
+		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
+		iCANDrvInit = CeCanDrv_Init;
+		setCANStatus(true);
+		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 	}
 }
 
@@ -40,13 +50,19 @@ CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
-mulBaudrate(baudrate)
+mulBaudrate(baudrate),
+uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
+	}else {
+		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
+		iCANDrvInit = CeCanDrv_Init;
+		setCANStatus(true);
+		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 	}
 }
 
@@ -54,13 +70,19 @@ CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, uns
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
-mulBaudrate(baudrate)
+mulBaudrate(baudrate),
+uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
+	}else {
+		ALOGD(TAG, __FUNCTION__, "CAN Reception Thread created");
+		iCANDrvInit = CeCanDrv_Init;
+		setCANStatus(true);
+		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 	}
 }
 
@@ -74,6 +96,7 @@ CANDrv::~CANDrv()
 	pthread_join(Can_Thread, NULL);
 	//delete CAN Reception FIFO
 	delete CANFifo;
+	iCANDrvInit = CeCanDrv_NotInit;
 }
 
 bool CANDrv::initCanDevice(string CanInfName)
@@ -83,31 +106,67 @@ bool CANDrv::initCanDevice(string CanInfName)
 	memset(&ifr, 0x0, sizeof(ifr));
 	memset(&addr, 0x0, sizeof(addr));
 	/* open CAN_RAW socket */
+	ALOGD(TAG, __FUNCTION__, "CAN Inf Name = %s", CanInfName.c_str());
 	sockCanfd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-	/* convert interface string "can0" into interface index */
+	if(sockCanfd <=0) {
+		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
+		return false;
+	}
 	strcpy(ifr.ifr_name, CanInfName.c_str());
-	ioctl(sockCanfd, SIOCGIFINDEX, &ifr);
+	if(ioctl(sockCanfd, SIOCGIFINDEX, &ifr)){
+		ALOGE(TAG, __FUNCTION__, "Cannot Retrieve Interface Index");
+		return false;
+	}
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
 	addr.can_family = PF_CAN;
 	/* Set CAN Socket to Non-Blocking
 	 * So we can interrupt the read routing */
 	int flags = fcntl(sockCanfd, F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(sockCanfd, F_SETFL, flags);
-	/* bind socket to the can0 interface */
-	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
-	//Fix-me Correct status to be returned
+	if(flags != -1) {
+		flags |= O_NONBLOCK;
+		if(fcntl(sockCanfd, F_SETFL, flags) != -1){
+			/* bind socket to the can0 interface */
+			bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
+			//Fix-me Correct status to be returned
+		}else {
+			ALOGE(TAG, __FUNCTION__, "Cannot Set Non-Block Socket");
+			return false;
+		}
+	}else {
+		ALOGE(TAG, __FUNCTION__, "Cannot Get Socket Flags");
+		return false;
+	}
 	return true;
 }
 
-int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
+int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
 {
-	if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
-		return -1;
-	} else{
-		return (sizeof(struct can_frame));
+	ALOGD(TAG, __FUNCTION__, "Reception Called with Timeout = %lu",timeout);
+	struct timeval tv;
+	if(timeout > 1000) { // There's seconds in timeout
+		tv.tv_sec = timeout % 1000;
+	} else {
+		tv.tv_sec = 0;
 	}
+	tv.tv_usec = (timeout * 1000) - (tv.tv_sec * 1000000);
+	fd_set readSet;
+	FD_ZERO(&readSet);
+    FD_SET(sockCanfd, &readSet);
+    
+    int rc = select(sockCanfd + 1, &readSet, NULL, NULL, &tv);
+    if (!rc) {
+         return -2; //timeout error
+    }else {
+		if (FD_ISSET(sockCanfd, &readSet)) {
+			if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
+				return -1;
+			} else{
+				return (sizeof(struct can_frame));
+			}
+		}
+	}
+	return -1;
 }
 
 bool CANDrv::CanSendMsg(struct can_frame &TxCanMsg)
@@ -129,10 +188,13 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 3000000;
+	int iRecError = 0;
 	while(CanDrvInst->mCANStatus)
 	{
-		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
-			;
+		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) == -2){
+			ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
+		}else if (iRecError == -1){
+			ALOGE(TAG, __FUNCTION__, "CAN Reception Error");
 		}else {
 			//CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing

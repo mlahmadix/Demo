@@ -3,15 +3,16 @@
 
 #include "can/can_drv.h"
 
-class J1939Layer
+#define J1939_BaudRate 250000
+class J1939Layer: public CANDrv
 {
 	public:
-		J1939Layer(std::string CanFifoName);
+		J1939Layer(std::string CanFifoName, std::string CanInfName);
 		~J1939Layer();
 		bool SendJ1939Msg(struct can_frame &TxCanMsg);
+		void ForceStopCAN();
 	
 	private:
-		CANDrv * CanInfDrv;
 		pthread_t J1939Thread;
 		static void * pvthJ1939ParseFrames_Exe (void* context);
 };

@@ -50,7 +50,7 @@ int main(){
 	  
 	  
       //Initialize CAN Interface
-      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0"));
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0"));
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
@@ -82,7 +82,7 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       
       while(bIgnitionSet == false);
-      //CanInfDrv->StopCANDriver();
+      J1939LayerApp->ForceStopCAN();
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");
       return 0;

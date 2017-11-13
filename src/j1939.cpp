@@ -7,26 +7,27 @@
 using namespace std;
 
 
-J1939Layer::J1939Layer(std::string CanFifoName)
+J1939Layer::J1939Layer(string CanFifoName, string CanInfName):
+CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate))
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	CanInfDrv = new CANDrv(CanFifoName);
 }
 
 
 J1939Layer::~J1939Layer()
 {
 	ALOGD(TAG, __FUNCTION__, "DTOR");
-	if(CanInfDrv){
-		CanInfDrv->StopCANDriver();
-		delete CanInfDrv;
-	}
 }
 
 bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
 {
-	if(CanInfDrv->getCANStatus() == true)
-		return CanInfDrv->CanSendMsg(TxCanMsg);
+	if(getCANStatus() == true)
+		return CanSendMsg(TxCanMsg);
 	else
 		return false;
+}
+
+void J1939Layer::ForceStopCAN()
+{
+	StopCANDriver();
 }
