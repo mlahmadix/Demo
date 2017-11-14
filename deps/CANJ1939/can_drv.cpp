@@ -1,11 +1,14 @@
 #include <iostream>
-#include <fcntl.h>
+#include <fcntl.h> //include socket file control operations ioctl, fcntl ...
 #include <sstream> //include stringstream
 #include <iomanip> //include setw and setfill
+#include <chrono> //include timestamp operations
 #include "can/can_drv.h"
 #include "logger/lib_logger.h"
 
 using namespace std;
+using namespace std::chrono;
+
 #define TAG "CANDrv"
 
 CANDrv::CANDrv(string FifoName, struct can_filter * CANFilters):
@@ -13,7 +16,7 @@ mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(10000)
+uiDefCANRecTimeout(CANDefaultTimeoutBase)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
@@ -35,7 +38,7 @@ mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(10000)
+uiDefCANRecTimeout(CANDefaultTimeoutBase)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
@@ -57,7 +60,7 @@ mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(baudrate),
-uiDefCANRecTimeout(10000)
+uiDefCANRecTimeout(CANDefaultTimeoutBase)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
@@ -79,7 +82,7 @@ mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
 mulBaudrate(baudrate),
-uiDefCANRecTimeout(10000)
+uiDefCANRecTimeout(CANDefaultTimeoutBase)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
@@ -218,6 +221,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 {
 	CANDrv * CanDrvInst = static_cast<CANDrv *>(context);
 	struct can_frame RxCanMsg;
+	CanMsgTstamp RxCanTstmpMsg;
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 3000000;
@@ -225,7 +229,8 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	while(CanDrvInst->mCANStatus)
 	{
 		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) == -2){
-			ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
+			//ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
+			;
 		}else if (iRecError == -1){
 			ALOGE(TAG, __FUNCTION__, "CAN Reception Error");
 		}else {
@@ -233,12 +238,12 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
-			ALOGD(TAG, __FUNCTION__, "New CAN Message Received");
-			//CanDrvInst->printCanFrame(RxCanMsg);
 #ifdef CANDATALOGGER
 			CanDrvInst->LogCanMsgToFile(RxCanMsg, CeCanDir_RX);
 #endif
-			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == false) {
+			RxCanTstmpMsg.RxCanMsg = RxCanMsg;
+			RxCanTstmpMsg.ulMsgTstamp = CanDrvInst->getCANMsgTimestamp();
+			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanTstmpMsg,sizeof(unsigned long long)+8+RxCanMsg.can_dlc) == false) {
 				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
 			}
 		}
@@ -286,12 +291,28 @@ void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 {
 	string BufferData;
 	std::stringstream CanString;
+	CanString << getCANMsgTimestamp();
+	CanString << "\t";
 	if(MsgDir == CeCanDir_TX) {
 		CanString << "TX";
 	}else {
 		CanString << "RX";
 	}
 	CanString << "\t";
+	
+	if((CanMsg.can_id & CAN_SFF_MASK)== CanMsg.can_id) { //CAN Standard Frame <= 0x7FF
+		CanString << "STD";
+	}else if (((CanMsg.can_id & CAN_EFF_MASK) == CanMsg.can_id) &&
+			  ((CanMsg.can_id & CAN_SFF_MASK) != CanMsg.can_id)){ //CAN Extended Frame <= 0x1FFFFFFF & > 0x7FF
+		CanString << "EXT";
+	}else if((CanMsg.can_id & CAN_RTR_FLAG) == CanMsg.can_id) {
+		CanString << "RTR"; //CAN Remote Transmission Request
+	}else { //CAN Error Frame
+		CanString << "ERR";
+	}
+	CanString << "\t";
+	
+	
 	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
 	          << std::hex << CanMsg.can_id;
 	CanString << "\t";
@@ -306,5 +327,10 @@ void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 		      << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
 	BufferData = CanString.str();
 	CanDataLogger->WriteLogData(BufferData, true);
+}
+
+unsigned long long CANDrv::getCANMsgTimestamp()
+{
+	return duration_cast<std::chrono::milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 

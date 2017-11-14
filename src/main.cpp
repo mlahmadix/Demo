@@ -46,6 +46,15 @@ unsigned short usEngineSpeed = 0; //Engine RPM in Revolution Per Minute
 unsigned short usVehicleSpeed = 0;//Vehicle Speed in Km/h
 signed char    scCoolTemp = 0;//Engine Coolant Temperature
 unsigned short  usOilPres = 0;//Engine Oil Pressure
+
+enum J1939DataStatus {
+	CeJ1939_EngSpeed_Status = 0,
+	CeJ1939_VehSpeed_Status,
+	CeJ1939_CoolTemp_Status,
+	CeJ1939_OilPress_Status,
+	CeJ1939_MaxParams_Status
+};
+bool J1939DataStats[CeJ1939_MaxParams_Status] = {false};
 //****************************************************************************//
 //J1939 Received Messages
 //****************************************************************************//
@@ -59,10 +68,10 @@ unsigned short  usOilPres = 0;//Engine Oil Pressure
 
 static const struct J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
 {
- {EEC1_PGN,		 ENG_SA,  3, 2 ,  1, 8,  0,  0,   12000  ,  &usEngineSpeed},
- {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,  &usVehicleSpeed},
- {ENG_TEMP1_PGN, ENG_SA,  0, 1 ,  1, 1,  -40,-40, 210    ,  &scCoolTemp},
- {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,  &usOilPres},
+ {EEC1_PGN,		 ENG_SA,  3, 2 ,  1, 8,  0,  0,   12000  ,5000,  &usEngineSpeed , &J1939DataStats[CeJ1939_EngSpeed_Status]},
+ {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,5000,  &usVehicleSpeed, &J1939DataStats[CeJ1939_VehSpeed_Status]},
+ {ENG_TEMP1_PGN, ENG_SA,  0, 1 ,  1, 1,  -40,-40, 210    ,10000,  &scCoolTemp    , &J1939DataStats[CeJ1939_CoolTemp_Status]},
+ {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,10000,  &usOilPres     , &J1939DataStats[CeJ1939_OilPress_Status]},
 };
 
 unsigned long ulBuildCanId(unsigned char ucSA, unsigned short usPGN)
@@ -136,13 +145,29 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
       struct timespec MainDataDisplayTimer;
-      MainDataDisplayTimer.tv_sec = 3;
+      MainDataDisplayTimer.tv_sec = 1;
 	  MainDataDisplayTimer.tv_nsec = 0; 
       while(bIgnitionSet == false){
-		  ALOGD(TAG, __FUNCTION__, "usEngineSpeed  = %d", usEngineSpeed);
-		  ALOGD(TAG, __FUNCTION__, "usVehicleSpeed = %d", usVehicleSpeed);
-		  ALOGD(TAG, __FUNCTION__, "scCoolTemp     = %d", scCoolTemp);
-		  ALOGD(TAG, __FUNCTION__, "ucOilPres      = %d", usOilPres);
+		  if(J1939DataStats[CeJ1939_EngSpeed_Status] == true){
+			ALOGD(TAG, __FUNCTION__, "usEngineSpeed  = %d %s", usEngineSpeed, "RPM");
+		  }else {
+			  ALOGD(TAG, __FUNCTION__, "usEngineSpeed  = %s %s", "-----", "RPM");
+		  }
+		  if(J1939DataStats[CeJ1939_VehSpeed_Status] == true){
+			ALOGD(TAG, __FUNCTION__, "usVehicleSpeed = %d %s", usVehicleSpeed, "Kmh");
+	      }else {
+			  ALOGD(TAG, __FUNCTION__, "usVehicleSpeed = %s %s", "---", "Kmh");
+		  }
+		  if(J1939DataStats[CeJ1939_CoolTemp_Status] == true){
+			ALOGD(TAG, __FUNCTION__, "scCoolTemp     = %d %s", scCoolTemp, "°C");
+		  }else {
+			  ALOGD(TAG, __FUNCTION__, "scCoolTemp     = %s %s", "----", "°C");
+		  }
+		  if(J1939DataStats[CeJ1939_OilPress_Status] == true){
+			ALOGD(TAG, __FUNCTION__, "ucOilPres      = %d %s", usOilPres, "mBar");
+		  }else {
+			  ALOGD(TAG, __FUNCTION__, "ucOilPres      = %s %s", "----", "mBar");
+		  }
 		  nanosleep(&MainDataDisplayTimer, NULL);
 	  }
       J1939LayerApp->ForceStopCAN();

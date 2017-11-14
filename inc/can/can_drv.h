@@ -13,6 +13,8 @@
 #include "fifo/lib_fifo.h"
 #include "filelog/lib_filelog.h"
 
+#define CANDefaultTimeoutBase 5000 //5s for HeatBet messages
+
 class CANDrv
 {
 	public:
@@ -26,6 +28,10 @@ class CANDrv
 			CeCanDrv_NotInit = 0,
 			CeCanDrv_Init,
 		};
+		struct CanMsgTstamp {
+			struct can_frame RxCanMsg;
+			unsigned long long ulMsgTstamp;
+		};
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 				int CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout); //timeout expressed in milliseconds
@@ -35,6 +41,7 @@ class CANDrv
 		void StopCANDriver();
 		void printCanFrame(struct can_frame TxCanMsg);
 		Fifo * CANFifo;
+		unsigned long long getCANMsgTimestamp();
 	private:
 		bool initCanDevice(std::string CanInfName, struct can_filter * CANFilters);
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
