@@ -12,7 +12,7 @@ set (HelloWorldVersion "${HelloWorld_VERSION_MAJOR}.${HelloWorld_VERSION_MINOR}.
 set (MAIN_INC
      inc/TutorialConfig.h
      inc/logger/lib_logger.h
-     inc/dynamic/lib_dynamic.h
+     inc/filelog/lib_filelog.h
      inc/sharedMem/lib_sharedMem.h
      inc/signal/lib_signal.h
      inc/main_app/io_mapping.h
@@ -20,14 +20,14 @@ set (MAIN_INC
      inc/main_app/j1939.h)
 
 #define Sources, dlls and libs
-set (STA_LIB logger dynamic canj1939 fifo sharedmem signal inout)
+set (STA_LIB logger filelog canj1939 fifo sharedmem signal inout)
 set (MAIN_SRC   src/main.cpp
 				src/InOut_app.cpp
 				src/j1939.cpp)
 
-if(FILECREAT)
+if(CANDATALOGGER)
 #add definitions
-add_definitions (-DFILECREAT)
+add_definitions (-DCANDATALOGGER)
 endif()
 
 if(LOGDEBUG)

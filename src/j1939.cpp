@@ -7,14 +7,17 @@
 using namespace std;
 
 
-J1939Layer::J1939Layer(string CanFifoName, string CanInfName, const struct J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size):
-CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+J1939Layer::J1939Layer(string CanFifoName, string CanInfName, const struct J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size, struct can_filter * J1939Filters):
+CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), J1939Filters),
 mEffectiveRxMsgNum(0)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	if(getCANStatus()) {
 		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
 		InstallJ1939_RXParsers(J1939_RxDataParams, size);
+		if(setCanFilters(J1939Filters, mEffectiveRxMsgNum)) {
+			ALOGD(TAG, __FUNCTION__, "J1939 CAN Filters Set Successfully");
+		}
 		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
 	}
 }
@@ -27,6 +30,15 @@ J1939Layer::~J1939Layer()
 	pthread_join(J1939Thread, NULL);
 	RemoveJ1939_RXParsers();
 }
+
+unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usPGN)
+{
+	unsigned char ucDefPrio = 6;
+	return static_cast<unsigned long>(static_cast<unsigned long>(ucDefPrio << 24) +
+									  static_cast<unsigned long>(usPGN << 8) +
+									  static_cast<unsigned long>(ucSA));
+}
+
 
 bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
 {

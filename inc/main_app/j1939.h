@@ -23,7 +23,8 @@ struct J1939_eRxDataInfo
 class J1939Layer: public CANDrv
 {
 	public:
-		J1939Layer(std::string CanFifoName, std::string CanInfName, const struct J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size);
+		J1939Layer(std::string CanFifoName, std::string CanInfName, const struct J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size,
+		           struct can_filter * J1939Filters);
 		~J1939Layer();
 		bool SendJ1939Msg(struct can_frame &TxCanMsg);
 		void ForceStopCAN();
@@ -38,6 +39,7 @@ class J1939Layer: public CANDrv
 		void j1939_updateDataParameters(struct can_frame NewRecvMsg);
 		unsigned short usGetPGNfromArbID(unsigned long ulArbID);
 		unsigned char ucGetSAfromArbID(unsigned long ulArbID);
+		unsigned long ulBuildExtCanId(unsigned char ucSA, unsigned short usPGN);
 };
 
 #endif

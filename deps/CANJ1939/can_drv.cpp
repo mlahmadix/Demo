@@ -1,12 +1,14 @@
 #include <iostream>
 #include <fcntl.h>
+#include <sstream> //include stringstream
+#include <iomanip> //include setw and setfill
 #include "can/can_drv.h"
 #include "logger/lib_logger.h"
 
 using namespace std;
 #define TAG "CANDrv"
 
-CANDrv::CANDrv(string FifoName):
+CANDrv::CANDrv(string FifoName, struct can_filter * CANFilters):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -15,17 +17,20 @@ uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice("vcan0")) {
+	if(!initCanDevice("vcan0", CANFilters)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+#ifdef CANDATALOGGER
+		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+#endif
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface):
+CANDrv::CANDrv(string FifoName, string CanInterface, struct can_filter * CANFilters):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -34,17 +39,20 @@ uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
+	if(!initCanDevice(CanInterface, CANFilters)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+#ifdef CANDATALOGGER
+		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+#endif
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate):
+CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, struct can_filter * CANFilters):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -53,17 +61,20 @@ uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
+	if(!initCanDevice(CanInterface, CANFilters)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+#ifdef CANDATALOGGER
+		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+#endif
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
+CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, unsigned long ModeFlags, struct can_filter * CANFilters):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
@@ -72,13 +83,16 @@ uiDefCANRecTimeout(10000)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
+	if(!initCanDevice(CanInterface, CANFilters)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
 		iCANDrvInit = CeCanDrv_Init;
 		setCANStatus(true);
 		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+#ifdef CANDATALOGGER
+		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+#endif
 	}
 }
 
@@ -92,11 +106,15 @@ CANDrv::~CANDrv()
 	pthread_join(Can_Thread, NULL);
 	//delete CAN Reception FIFO
 	delete CANFifo;
+#ifdef CANDATALOGGER
+	delete CanDataLogger;
+#endif
 	iCANDrvInit = CeCanDrv_NotInit;
 }
 
-bool CANDrv::initCanDevice(string CanInfName)
+bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 {
+	ALOGD(TAG, __FUNCTION__, "Init Can Interface %s", CanInfName.c_str());
 	struct ifreq ifr;
 	struct sockaddr_can addr;
 	memset(&ifr, 0x0, sizeof(ifr));
@@ -107,11 +125,13 @@ bool CANDrv::initCanDevice(string CanInfName)
 		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
 		return false;
 	}
+	
 	strcpy(ifr.ifr_name, CanInfName.c_str());
 	if(ioctl(sockCanfd, SIOCGIFINDEX, &ifr)){
 		ALOGE(TAG, __FUNCTION__, "Cannot Retrieve Interface Index");
 		return false;
 	}
+	
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
 	addr.can_family = PF_CAN;
@@ -121,9 +141,12 @@ bool CANDrv::initCanDevice(string CanInfName)
 	if(flags != -1) {
 		flags |= O_NONBLOCK;
 		if(fcntl(sockCanfd, F_SETFL, flags) != -1){
-			/* bind socket to the can0 interface */
-			bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
-			//Fix-me Correct status to be returned
+			if((CANFilters != NULL) && (sizeof(CANFilters)/sizeof(CANFilters[0]) > 0)) {
+				if(setsockopt(sockCanfd, SOL_CAN_RAW, CAN_RAW_FILTER, &CANFilters, sizeof(CANFilters)) != 0){
+					ALOGE(TAG, __FUNCTION__, "Cannot Apply CAN Filters");
+					return false;
+				}
+			}
 		}else {
 			ALOGE(TAG, __FUNCTION__, "Cannot Set Non-Block Socket");
 			return false;
@@ -131,6 +154,19 @@ bool CANDrv::initCanDevice(string CanInfName)
 	}else {
 		ALOGE(TAG, __FUNCTION__, "Cannot Get Socket Flags");
 		return false;
+	}
+	
+	//Put CAN Interface UP
+	if (!(ifr.ifr_flags & IFF_UP)) {
+		ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
+		if (ioctl(sockCanfd, SIOCSIFFLAGS, &ifr) != 0) {
+			ALOGE(TAG, __FUNCTION__, "Cannot Set Interface Up");
+			return false;
+		}else {
+			/* bind socket to the can0 interface */
+			bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
+			ALOGD(TAG, __FUNCTION__, "Set interface %s Up successfully",CanInfName.c_str());
+		}		
 	}
 	return true;
 }
@@ -165,6 +201,9 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
 
 bool CANDrv::CanSendMsg(struct can_frame &TxCanMsg)
 {
+#ifdef CANDATALOGGER
+	LogCanMsgToFile(TxCanMsg, CeCanDir_TX);
+#endif
 	if(write(sockCanfd, &TxCanMsg, sizeof(TxCanMsg)) == sizeof(TxCanMsg)){
 		ALOGD(TAG, __FUNCTION__, "CAN Msg sent successfully");
 		printCanFrame(TxCanMsg);
@@ -194,6 +233,11 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
+			ALOGD(TAG, __FUNCTION__, "New CAN Message Received");
+			//CanDrvInst->printCanFrame(RxCanMsg);
+#ifdef CANDATALOGGER
+			CanDrvInst->LogCanMsgToFile(RxCanMsg, CeCanDir_RX);
+#endif
 			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxCanMsg,8+RxCanMsg.can_dlc) == false) {
 				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
 			}
@@ -206,10 +250,10 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 
 void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 {
-	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%08X", TxCanMsg.can_id);
-	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
 	char BufferData[1024]={0};
 	char FieldVal[100]={0};
+	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%08X", TxCanMsg.can_id);
+	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
 	for(int j=0; j < (TxCanMsg.can_dlc-1); j++) {
 		sprintf(FieldVal,"0x%02X-",(int)TxCanMsg.data[j]);
 		strcat(BufferData,FieldVal);
@@ -228,3 +272,39 @@ void CANDrv::StopCANDriver()
 {
 	setCANStatus(false);
 }
+
+bool CANDrv::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
+{
+    if(setsockopt(sockCanfd, SOL_CAN_RAW, CAN_RAW_FILTER, &AppliedFilters, sizeof(struct can_filter)*size) == 0){
+		return true;
+	}else {
+		ALOGD(TAG, __FUNCTION__, "Fail To apply CAN Filters");
+		return false;
+	}
+}
+void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
+{
+	string BufferData;
+	std::stringstream CanString;
+	if(MsgDir == CeCanDir_TX) {
+		CanString << "TX";
+	}else {
+		CanString << "RX";
+	}
+	CanString << "\t";
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
+	          << std::hex << CanMsg.can_id;
+	CanString << "\t";
+	CanString << (int)CanMsg.can_dlc;
+	CanString << "\t";
+	for(int j=0; j < (CanMsg.can_dlc-1); j++) {
+		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+		          << std::hex << (int)CanMsg.data[j];
+		CanString << " - ";
+	}
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+		      << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
+	BufferData = CanString.str();
+	CanDataLogger->WriteLogData(BufferData, true);
+}
+

@@ -2,7 +2,6 @@
 #include <memory>
 #include <errno.h>
 #include "logger/lib_logger.h"
-#include "dynamic/lib_dynamic.h"
 #include "sharedMem/lib_sharedMem.h"
 #include "signal/lib_signal.h"
 #include "main_app/InOutApp.h"
@@ -64,7 +63,15 @@ static const struct J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
  {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,  &usVehicleSpeed},
  {ENG_TEMP1_PGN, ENG_SA,  0, 1 ,  1, 1,  -40,-40, 210    ,  &scCoolTemp},
  {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,  &usOilPres},
-}; 
+};
+
+unsigned long ulBuildCanId(unsigned char ucSA, unsigned short usPGN)
+{
+	unsigned char ucDefPrio = 6;
+	return static_cast<unsigned long>(static_cast<unsigned long>(ucDefPrio << 24) +
+									  static_cast<unsigned long>(usPGN << 8) +
+									  static_cast<unsigned long>(ucSA));
+}
 
 
 bool bIgnitionSet = false;
@@ -80,9 +87,6 @@ void SignalHandler(int signo)
 int main(){
 
       ALOGI(TAG, __FUNCTION__, "Main Program Init");
-      int dyn = iLog_eCreateFile_Exe("HelloLog.txt");
-      ALOGI(TAG, __FUNCTION__, "Dynamic return %d", dyn);
-
       //initialize a Signal Catcher for SIGINT
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
       
@@ -93,7 +97,15 @@ int main(){
 	  
 	  
       //Initialize CAN Interface
-      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4));
+      	//struct can_filter J1939Filters[size]={0};
+		struct can_filter* J1939Filters = new can_filter[4];
+		for(unsigned int j = 0; j < 4; j++) {
+			J1939Filters[j].can_id   = ulBuildCanId(CstP1939_iRxDataDef[j].ucSA,
+			                                        CstP1939_iRxDataDef[j].usPGN);
+			J1939Filters[j].can_mask = CAN_EFF_MASK; //J1939 use CAN2.0B only extended frames
+		}
+      
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4, J1939Filters));
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");

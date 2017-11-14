@@ -7,7 +7,7 @@ SRCDIR=$(pwd)
 BUILDIR=$(pwd)/build
 RM=$(which rm)
 LOGGING="ON"
-FILETRC="OFF"
+CANLOG="ON"
 
 if [ $# -lt 1 ] 
 then
@@ -22,7 +22,7 @@ if [ "$1" = "build" ]; then
 	cd $BUILDIR
 
 	echo "25%   ---- configuring project environment"
-	$CMAKE -DLOGDEBUG=$LOGGING -DFILECREAT=$FILETRC $SRCDIR >/dev/null 2>&1
+	$CMAKE -DLOGDEBUG=$LOGGING -DCANDATALOGGER=$CANLOG $SRCDIR >/dev/null 2>&1
 	if [ $? -eq 0 ]
 	then
 		echo "50%  ---- building project"

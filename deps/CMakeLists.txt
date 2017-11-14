@@ -1,4 +1,4 @@
-include ("dynamic/CMakeLists.txt")
+include ("filelog/CMakeLists.txt")
 include ("logger/CMakeLists.txt")
 include ("Fifo/CMakeLists.txt")
 include ("CANJ1939/CMakeLists.txt")

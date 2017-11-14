@@ -3,7 +3,7 @@ set (CAN_SRC CANJ1939/can_drv.cpp)
 set (CAN_HDR
      ../inc/can/can_drv.h)
      
-set (FIFO_LIB fifo)
+set (FIFO_LIB fifo filelog)
 
 #include directories
 include_directories("../inc")
