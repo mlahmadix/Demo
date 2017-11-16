@@ -6,6 +6,7 @@
 #include "signal/lib_signal.h"
 #include "main_app/InOutApp.h"
 #include "main_app/j1939.h"
+#include "nmeaparser/NmeaParser.h"
 
 using namespace std;
 using namespace boost::interprocess;
@@ -119,6 +120,8 @@ int main(){
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
+      
+      std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/ttyS0", 115200));
       
 	  //Shared memory testing Structure
 	  struct ProgramPosition TestPosWr, TestPosRd;

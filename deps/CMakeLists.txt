@@ -5,4 +5,6 @@ include ("CANJ1939/CMakeLists.txt")
 include ("sharedMem/CMakeLists.txt")
 include ("signal/CMakeLists.txt")
 include ("inout/CMakeLists.txt")
+include ("nmeaparser/CMakeLists.txt")
+include ("IOUtils/CMakeLists.txt")
 

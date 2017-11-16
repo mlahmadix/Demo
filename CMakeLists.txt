@@ -15,12 +15,13 @@ set (MAIN_INC
      inc/filelog/lib_filelog.h
      inc/sharedMem/lib_sharedMem.h
      inc/signal/lib_signal.h
+     inc/nmeaparser/NmeaParser.h
      inc/main_app/io_mapping.h
      inc/main_app/InOutApp.h
      inc/main_app/j1939.h)
 
 #define Sources, dlls and libs
-set (STA_LIB logger filelog canj1939 fifo sharedmem signal inout)
+set (STA_LIB logger filelog canj1939 fifo sharedmem signal inout nmeaparser ioutils)
 set (MAIN_SRC   src/main.cpp
 				src/InOut_app.cpp
 				src/j1939.cpp)
@@ -39,9 +40,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
 
 #Check if Boost is available on system
-find_package(Boost 1.36.0)
+find_package(Boost 1.40.0 COMPONENTS date_time filesystem system)
 if (NOT ${Boost_FOUND})
-    message( FATAL_ERROR "libboost-dev was not found : ${Boost_NOT_FOUND_MESSAGE}" )
+    message( FATAL_ERROR "libboost-all-dev was not found : ${Boost_NOT_FOUND_MESSAGE}" )
 else ()
 	include_directories(${Boost_INCLUDE_DIRS})
 endif(NOT ${Boost_FOUND})
@@ -55,7 +56,7 @@ include_directories("inc")
 add_executable(HelloWorld ${MAIN_SRC} ${MAIN_INC} ${Boost_INCLUDE_DIRS})
 
 #link step
-target_link_libraries(HelloWorld ${STA_LIB} ${Boost_LIBRARIES} -lpthread -lrt)
+target_link_libraries(HelloWorld ${STA_LIB} ${Boost_LIBRARIES} -lboost_system -lpthread -lrt)
 
 enable_testing()
 
