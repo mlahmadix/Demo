@@ -38,20 +38,23 @@
 	 public:
 	 
 		NmeaParser(const char * ucUartPortPath, unsigned long usBaudrate);
+		#ifdef NMEAP_DEBUG
 		NmeaParser(const char * EmulatedPath);
+		#endif
 		~NmeaParser();
 		void NmeapPortSetBaudrate(unsigned long uwNewBaudrate);
 	private:
-		
+		#ifdef NMEAP_DEBUG
 		enum NmeaParserFileInit {
 			CeNmea_FileNoInit,
 			CeNmea_FileInitOK,
 			CeNmea_FileInitKO,
 		};
 		NmeaParserFileInit NmeaFileStatus;
+		std::ifstream NmeapFileHandle; 
+		#endif
 		int NmeapUartHandle;
 		unsigned long musBaudrate;
-		std::ifstream NmeapFileHandle; 
 	 
  };
 

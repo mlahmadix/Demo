@@ -33,11 +33,9 @@ int DataFileLogger::WriteLogData(std::string LoggingMessage, bool retLine)
 {
 	int iRet = 0;
 	if(mFileLoggingStat == CeFile_LoggingSuccess) {
-		if(retLine) {
-			mLogFileHndle << LoggingMessage << endl;
-		 }else {
-			mLogFileHndle << LoggingMessage;
-		 }
+		mLogFileHndle << LoggingMessage;
+		if(retLine)
+			mLogFileHndle << endl;
 	}else {
 		iRet = -2; //bad file Desc
 	}

@@ -18,13 +18,20 @@ set (MAIN_INC
      inc/nmeaparser/NmeaParser.h
      inc/main_app/io_mapping.h
      inc/main_app/InOutApp.h
-     inc/main_app/j1939.h)
+     inc/main_app/j1939.h
+     inc/main_app/eeprom.h)
 
 #define Sources, dlls and libs
 set (STA_LIB logger filelog canj1939 fifo sharedmem signal inout nmeaparser ioutils)
 set (MAIN_SRC   src/main.cpp
 				src/InOut_app.cpp
-				src/j1939.cpp)
+				src/j1939.cpp
+				src/eeprom.cpp)
+
+if(NMEAPDEBUG)
+#add definitions
+add_definitions (-DNMEAP_DEBUG)
+endif()
 
 if(CANDATALOGGER)
 #add definitions

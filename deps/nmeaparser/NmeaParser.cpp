@@ -18,6 +18,7 @@ SerialPort(ucUartPortPath, usBaudrate, true, 8,
 	}
 }
 
+#ifdef NMEAP_DEBUG
 NmeaParser::NmeaParser(const char * EmulatedPath):
 SerialPort(NULL, 9600, true, 8, 1, false),
 NmeaFileStatus(CeNmea_FileNoInit),
@@ -35,13 +36,16 @@ NmeapFileHandle(NULL)
 	}
 	
 }
+#endif
 
 NmeaParser::~NmeaParser()
 {
 	ALOGD(TAG, __FUNCTION__, "DTOR");
+#ifdef NMEAP_DEBUG
 	if(NmeapFileHandle.is_open()) {
 		NmeapFileHandle.close();
 	}
+#endif
 }
 
 void NmeaParser::NmeapPortSetBaudrate(unsigned long uwNewBaudrate)

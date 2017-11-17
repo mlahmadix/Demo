@@ -7,6 +7,7 @@
 #include "main_app/InOutApp.h"
 #include "main_app/j1939.h"
 #include "nmeaparser/NmeaParser.h"
+#include "main_app/eeprom.h"
 
 using namespace std;
 using namespace boost::interprocess;
@@ -100,7 +101,22 @@ int main(){
       //initialize a Signal Catcher for SIGINT
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
       
-
+	  std::shared_ptr<eeprom> E2PConfigData(new eeprom("./MainE2p.bin", 1024)); //1KB-E2PROM Data
+	  char * Buffer = new char [1024];
+	  char * RdBuffer = new char [1024];
+	  for (int i = 0; i < 1024; i++)
+		Buffer[i] = (char)((0x40 +i)&0xFF);
+	  E2PConfigData->eeprom_write(Buffer, 0, 1024);
+	  int iDumpStat = 0;
+	  if(!(iDumpStat = E2PConfigData->eeprom_CloneToFile("E2promClone.bin"))) {
+		  ALOGD(TAG, __FUNCTION__, "E2P Dump Successfully");
+	  } else {
+		  ALOGE(TAG, __FUNCTION__, "Fail to Dump E2P = %d", iDumpStat);
+	  }
+	  E2PConfigData->eeprom_read(RdBuffer, 0, 1024);
+	  
+	  delete [] Buffer;
+	  delete [] RdBuffer;
       std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
 
 	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_ParkOut);
@@ -174,6 +190,7 @@ int main(){
 		  nanosleep(&MainDataDisplayTimer, NULL);
 	  }
       J1939LayerApp->ForceStopCAN();
+      delete J1939Filters;
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");
       return 0;
