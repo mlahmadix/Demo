@@ -1,4 +1,7 @@
 #include <iostream>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "IOUtils/FileIo.h"
 #include "logger/lib_logger.h"
 
@@ -7,7 +10,7 @@ using namespace std;
 #define TAG "FileIO"
 
 FileIo::FileIo(std::string FilePath, FileAccessType FileAccess, FileType binary, bool FixedFileSize, unsigned int FileDataSize):
-mFileHndle(NULL),
+mFileHndle(-1),
 mFileOffset(0),
 mFixedFileSize(FixedFileSize),
 mFileSize(FileDataSize),
@@ -19,7 +22,7 @@ mFileRunStatus(CeFile_Idle)
 }
 
 FileIo::FileIo(std::string FilePath, FileAccessType FileAccess, FileType binary):
-mFileHndle(NULL),
+mFileHndle(-1),
 mFileOffset(0),
 mFixedFileSize(false),
 mFileSize(0),
@@ -34,22 +37,24 @@ void FileIo::InitFileAccess(std::string FilePath, FileAccessType FileAccess, Fil
 {
 	if(mBinAscii == CeFile_ASCII) {
 		if(mFileAccess == CeFile_Read) {
-			mFileHndle = fopen(FilePath.c_str(), "r");
+			mFileHndle = open(FilePath.c_str(), O_RDONLY|O_SYNC);
 		}else if (mFileAccess == CeFile_Write) {
-			mFileHndle = fopen(FilePath.c_str(), "w");
+			mFileHndle = open(FilePath.c_str(), O_WRONLY|O_SYNC);
 		}else {
-			mFileHndle = fopen(FilePath.c_str(), "w");
+			mFileHndle = open(FilePath.c_str(), O_RDWR|O_SYNC);
 		}
 	}else {
+		ALOGD(TAG, __FUNCTION__, "File Binary Opened");
 		if(mFileAccess == CeFile_Read) {
-			mFileHndle = fopen(FilePath.c_str(), "rb");
+			mFileHndle = open(FilePath.c_str(), O_RDONLY|O_SYNC);
 		}else if (mFileAccess == CeFile_Write) {
-			mFileHndle = fopen(FilePath.c_str(), "wb");
+			mFileHndle = open(FilePath.c_str(), O_WRONLY|O_SYNC);
 		}else {
-			mFileHndle = fopen(FilePath.c_str(), "wb");
+			ALOGD(TAG, __FUNCTION__, "File Opened in Read Write");
+			mFileHndle = open(FilePath.c_str(), O_RDWR|O_SYNC);
 		}
 	}
-	if(mFileHndle != NULL){
+	if(mFileHndle > 0){
 		(void)FileIo_GetSize();
 		FileIo_SetStatus(CeFile_Opened);
 	}
@@ -59,60 +64,68 @@ FileIo::~FileIo()
 {
 	ALOGD(TAG, __FUNCTION__,"DTOR");
 	while(FileIo_GetStatus() != CeFile_Opened);
-	if(mFileHndle != NULL){
-		fflush(mFileHndle);
-		fclose(mFileHndle);
+	if(mFileHndle > 0){
+		close(mFileHndle);
 		FileIo_SetStatus(CeFile_Closed);
-		mFileHndle = NULL;
+		mFileHndle = -1;
 		ALOGD(TAG, __FUNCTION__, "File Destroyed Successfully");
 	}
 }
 
 int FileIo::FileIo_ReadStr(char* ReadBuff, unsigned int Offset, unsigned int ReadLen)
 {
-	int rdSize = 0;
+	unsigned int rdSize = 0;
+	int iRet = 0;
 	if(FileIo_GetStatus() != CeFile_Opened) {
-		return rdSize;
+		ALOGE(TAG, __FUNCTION__, "File is Busy");
+		return (iRet = -1);
 	}
 	FileIo_SetStatus(CeFile_Busy);
 	if (!FileIo_SetOffset(Offset)) {
-		rdSize = fread(ReadBuff, 1, ReadLen, mFileHndle);
+		if((rdSize = static_cast<int>(read(mFileHndle, (void*)ReadBuff, ReadLen))) != ReadLen) {
+			ALOGE(TAG, __FUNCTION__, "Not enough Data read = %d", rdSize);
+			iRet = -2; //Not All Data have been read
+		}
 	}else {
-		rdSize = 0;
+		ALOGE(TAG, __FUNCTION__, "Cannot Set Offset = %d", Offset);
+		iRet = -3;
 	}
 	FileIo_SetStatus(CeFile_Opened);
-	return rdSize;
+	return iRet;
 }
 
 int FileIo::FileIo_WriteStr(char * WriteBuff, unsigned int Offset, unsigned int WriteLen)
 {
-	ALOGD(TAG, __FUNCTION__, "Offset = %d   WriteLen=%d",Offset, WriteLen);
-	int wrSize = 0;
+	unsigned int wrSize = 0;
+	int iRet = 0;
 	if(FileIo_GetStatus() != CeFile_Opened) {
 		ALOGE(TAG, __FUNCTION__, "File is Busy");
-		return wrSize;
+		return (iRet = -1);
 	}
 	FileIo_SetStatus(CeFile_Busy);
 	if (!FileIo_SetOffset(Offset)) {
 		ALOGD(TAG, __FUNCTION__, "Offset OK 2");
-		if(mFileHndle != NULL) {
-			wrSize = fwrite(WriteBuff, 1, WriteLen, mFileHndle);
-			ALOGD(TAG, __FUNCTION__, "Amount Of %d bytes written", wrSize);
-			//(void)FileIo_GetSize(); //update size after each writing
+		if(mFileHndle > 0) {
+			if((wrSize = static_cast<int>(write(mFileHndle, (void*)WriteBuff, WriteLen))) != WriteLen){
+				ALOGE(TAG, __FUNCTION__, "Not all Data have been written = %d", wrSize);
+				iRet = -2;
+			}else {
+				ALOGD(TAG, __FUNCTION__, "Amount Of %d bytes written", wrSize);
+				(void)FileIo_GetSize(); //update size after each writing
+			}
 		}
 	}else{
 		ALOGE(TAG, __FUNCTION__, "Cannot set Offset=%d", Offset);
-		wrSize = 0;
+		iRet = -3;
 	}
 	FileIo_SetStatus(CeFile_Opened);
-	return wrSize;
+	return iRet;
 }
 
 int FileIo::FileIo_SetOffset(unsigned int Offset)
 {
 	if((Offset >=0) && (Offset < mFileSize) ){
-		if(!fseek(mFileHndle, Offset, SEEK_SET)){
-			ALOGD(TAG, __FUNCTION__, "Offset OK 1");
+		if(lseek(mFileHndle, Offset, SEEK_SET) == Offset){
 			mFileOffset = Offset;
 		}else {
 			return -1;
@@ -131,30 +144,32 @@ int FileIo::FileIo_Mirroring(string & DestFile)
 	}
 	int iRet = 0;
 	FileIo_SetStatus(CeFile_Busy);
-	FILE * outFile;
-	if(mBinAscii == CeFile_ASCII ) {
-		outFile = fopen(DestFile.c_str(), "w");
-	} else {
-		outFile = fopen(DestFile.c_str(), "wb");
-	}
-	if(outFile != NULL){
+	int outFile = -1;
+	outFile = open(DestFile.c_str(), O_RDWR|O_CREAT|O_SYNC);
+	if(outFile > 0){
 		unsigned int PrevOffset = mFileOffset;
 		if (!FileIo_SetOffset(0)) {
-			char * MirrorBuffer = new char[mFileSize];
-			int rdSize = fread(&MirrorBuffer[0], 1, mFileSize, mFileHndle);
-			int wrSize = fwrite(&MirrorBuffer[0], 1, mFileSize, outFile);
-			if(wrSize != rdSize) {
-				ALOGE(TAG, __FUNCTION__, "Error during Writing to DumpFile \
-				wrSize=%d   origSize=%d", wrSize, rdSize);
-				iRet = -1;
+			char * MirrorBuffer = new char[mFileSize+1];
+			unsigned int rdSize = static_cast<int>(read(mFileHndle, (void*)&MirrorBuffer[0], mFileSize));
+			if(rdSize == mFileSize) {
+				unsigned int wrSize = static_cast<int>(write(outFile, (void*)&MirrorBuffer[0], mFileSize));
+				if(wrSize == mFileSize) {
+					ALOGD(TAG, __FUNCTION__, "Writing to DumpFile \
+						wrSize=%d   origSize=%d", wrSize, rdSize);
+					if(wrSize != rdSize) {
+						ALOGE(TAG, __FUNCTION__, "Error during Writing to DumpFile \
+						wrSize=%d   origSize=%d", wrSize, rdSize);
+						iRet = -1;
+					}
+				}
 			}
+			close(outFile);
 			delete [] MirrorBuffer;
 			//Fallback to Previous Offset
 			(void)FileIo_SetOffset(PrevOffset);
 		}else {
 			iRet = -2;
 		}
-		fclose(outFile);
 	}else {
 		iRet = -3;
 	}
@@ -173,10 +188,11 @@ int FileIo::FileIo_GetOffset()
 int FileIo::FileIo_CalculateCS(unsigned int uiBegPos, unsigned int uiEndPos)
 {
 	int iCalcCS = 0;
+	int ReadErr = 0;
 	if((uiEndPos > 0) && (uiBegPos > 0) && (uiEndPos > uiBegPos)) {
 		char * CalcBuffer = new char[uiEndPos-uiBegPos +1];
-		if(FileIo_ReadStr(CalcBuffer, uiBegPos, uiEndPos-uiBegPos +1) <= 0) {
-			ALOGE(TAG, __FUNCTION__, "Cannot perform CS reading");
+		if((ReadErr = FileIo_ReadStr(CalcBuffer, uiBegPos, uiEndPos-uiBegPos)) < 0) {
+			ALOGE(TAG, __FUNCTION__, "Cannot perform CS reading = %d", ReadErr);
 			return -1;
 		}
 		for (unsigned int i = 0; i < (uiEndPos-uiBegPos +1); i++) {
@@ -194,9 +210,9 @@ unsigned int FileIo::FileIo_GetSize()
 	if(mFixedFileSize)
 		uiSize = mFileSize;
 	else {
-		fseek(mFileHndle, 0L, SEEK_END);
-		uiSize = ftell(mFileHndle);
-		fseek(mFileHndle, mFileOffset, SEEK_SET);
+		uiSize = lseek(mFileHndle, 0L, SEEK_END);
+		//Fallback to previous File Offset
+		lseek(mFileHndle, mFileOffset, SEEK_SET);
 		mFileSize = uiSize;
 	}
 	FileIo_SetStatus(CeFile_Opened);

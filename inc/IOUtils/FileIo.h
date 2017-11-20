@@ -9,7 +9,7 @@ class FileIo {
 		enum FileAccessType {
 			CeFile_Read = 1,
 			CeFile_Write = 2,
-			CeFile_RdWr = CeFile_Read | CeFile_Write
+			CeFile_RdWr = 3
 		};
 		
 		enum FileType {
@@ -36,7 +36,7 @@ class FileIo {
 		inline void FileIo_SetStatus (FileStatus Status) { mFileRunStatus = Status; }
 		
 	private:
-		FILE * mFileHndle;
+		int mFileHndle;
 		unsigned int mFileOffset;
 		bool mFixedFileSize;
 		unsigned int mFileSize;

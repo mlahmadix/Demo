@@ -34,10 +34,10 @@ int eeprom::eeprom_write(char * ucWriteBuffer, unsigned int E2poffset, int Write
 	ALOGD(TAG, __FUNCTION__, "Writing ...");
 	int Status = FileIo_WriteStr(ucWriteBuffer, E2poffset, WriteLen);
 	//Next Step is To Calculate and Update CS
-	if(Status > 0) {
-		/*int CS = FileIo_CalculateCS(2, mEepromSize); //two first bytes reserved for E2prom CS
+	if(Status == 0) {
+		int CS = FileIo_CalculateCS(2, mEepromSize); //two first bytes reserved for E2prom CS
+		ALOGD(TAG, __FUNCTION__, "Calculated CS = %08X", CS);
 		Status = FileIo_WriteStr((char*)&CS, 0, 2);
-		ALOGD(TAG, __FUNCTION__, "Calculated CS = %d", CS);*/
 	} else {
 		ALOGE(TAG, __FUNCTION__, "Fail to Write To E2P device");
 	}

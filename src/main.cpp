@@ -100,12 +100,17 @@ int main(){
       ALOGI(TAG, __FUNCTION__, "Main Program Init");
       //initialize a Signal Catcher for SIGINT
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
-      
+      /* To create a Binary File with Fixed size use following command:
+       * sudo dd if=/dev/zero of=./MainE2p.bin bs=16 count=64
+       * sector size should be a multiply of 16
+       * Total size = bs*count
+       * /dev/zero is used to set all bytes to 0x00
+       */
 	  std::shared_ptr<eeprom> E2PConfigData(new eeprom("./MainE2p.bin", 1024)); //1KB-E2PROM Data
 	  char * Buffer = new char [1024];
 	  char * RdBuffer = new char [1024];
 	  for (int i = 0; i < 1024; i++)
-		Buffer[i] = (char)((0x40 +i)&0xFF);
+		Buffer[i] = (char)((0x30 +i)&0xFF);
 	  E2PConfigData->eeprom_write(Buffer, 0, 1024);
 	  int iDumpStat = 0;
 	  if(!(iDumpStat = E2PConfigData->eeprom_CloneToFile("E2promClone.bin"))) {
@@ -113,10 +118,12 @@ int main(){
 	  } else {
 		  ALOGE(TAG, __FUNCTION__, "Fail to Dump E2P = %d", iDumpStat);
 	  }
-	  E2PConfigData->eeprom_read(RdBuffer, 0, 1024);
 	  
 	  delete [] Buffer;
 	  delete [] RdBuffer;
+	  /* You can verify manually content of E2PROM dump buffer
+	   * using the hexedit utility
+       */
       std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
 
 	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_ParkOut);
