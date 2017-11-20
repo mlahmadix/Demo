@@ -63,7 +63,6 @@ void FileIo::InitFileAccess(std::string FilePath, FileAccessType FileAccess, Fil
 FileIo::~FileIo()
 {
 	ALOGD(TAG, __FUNCTION__,"DTOR");
-	while(FileIo_GetStatus() != CeFile_Opened);
 	if(mFileHndle > 0){
 		close(mFileHndle);
 		FileIo_SetStatus(CeFile_Closed);

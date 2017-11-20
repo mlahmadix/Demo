@@ -8,17 +8,27 @@
 using namespace std;
 using namespace std::chrono;
 
-J1939Layer::J1939Layer(string CanFifoName, string CanInfName, const struct J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size, struct can_filter * J1939Filters):
-CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), J1939Filters),
-mEffectiveRxMsgNum(0)
+J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
+CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), NULL),
+mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	if(getCANStatus()) {
 		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
 		InstallJ1939_RXParsers(J1939_RxDataParams, size);
-		if(setCanFilters(J1939Filters, mEffectiveRxMsgNum)) {
-			ALOGD(TAG, __FUNCTION__, "J1939 CAN Filters Set Successfully");
-		}
+		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
+	}
+}
+
+J1939Layer::J1939Layer(string CanFifoName, string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
+struct can_filter * J1939Filters):
+CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), J1939Filters),
+mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
+{
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	if(getCANStatus()) {
+		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
+		InstallJ1939_RXParsers(J1939_RxDataParams, size);
 		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
 	}
 }
@@ -55,19 +65,31 @@ void J1939Layer::ForceStopCAN()
 }
 
 
-void J1939Layer::InstallJ1939_RXParsers(const J1939_eRxDataInfo * J1939_RxDataParams, unsigned int size)
+void J1939Layer::InstallJ1939_RXParsers(const J1939_eRxDataInfo * J1939_RxDataParams, int size)
 {
-	mEffectiveRxMsgNum = size;
-	for(unsigned int i = 0; i < mEffectiveRxMsgNum; i++) {
-		mJ1939_RxDataDef[i] = J1939_RxDataParams[i];
-	}
-	
-	for(unsigned int j = 0; j < mEffectiveRxMsgNum; j++) {
-		mJ1939_RxMsgTimeout[j].usPGN = J1939_RxDataParams[j].usPGN;
-		mJ1939_RxMsgTimeout[j].ucSA = J1939_RxDataParams[j].ucSA;
-		mJ1939_RxMsgTimeout[j].ulTimeout = 0;
-		mJ1939_RxMsgTimeout[j].ulPrevTimeout = 0;
-		mJ1939_RxMsgTimeout[j].ulMaxTimeout = J1939_RxDataParams[j].Timeout;
+	if(J1939_RxDataParams != NULL) {
+		if(size <= cstJ1939_Num_MsgRX)
+			mEffectiveRxMsgNum = size;
+		else
+			mEffectiveRxMsgNum = cstJ1939_Num_MsgRX;
+
+		ALOGD(TAG, __FUNCTION__, "Nber of RX Messages1= %d", size);
+		ALOGD(TAG, __FUNCTION__, "Nber of RX Messages2= %d", mEffectiveRxMsgNum);
+		
+		mJ1939_RxDataDef = new J1939_eRxDataInfo[mEffectiveRxMsgNum];
+		mJ1939_RxMsgTimeout = new J1939_eRXMsgTimeout[mEffectiveRxMsgNum];
+
+		for(unsigned int i = 0; i < mEffectiveRxMsgNum; i++) {
+			mJ1939_RxDataDef[i] = J1939_RxDataParams[i];
+		}
+		
+		for(unsigned int j = 0; j < mEffectiveRxMsgNum; j++) {
+			mJ1939_RxMsgTimeout[j].usPGN = J1939_RxDataParams[j].usPGN;
+			mJ1939_RxMsgTimeout[j].ucSA = J1939_RxDataParams[j].ucSA;
+			mJ1939_RxMsgTimeout[j].ulTimeout = 0;
+			mJ1939_RxMsgTimeout[j].ulPrevTimeout = 0;
+			mJ1939_RxMsgTimeout[j].ulMaxTimeout = J1939_RxDataParams[j].Timeout;
+		}
 	}
 }
 
@@ -183,5 +205,14 @@ void J1939Layer::RemoveJ1939_RXParsers()
 		mJ1939_RxDataDef[i] = {0};
 		mJ1939_RxMsgTimeout[i] = {0};
 	}
+	delete [] mJ1939_RxDataDef;
+	delete [] mJ1939_RxMsgTimeout;
 	mEffectiveRxMsgNum = 0;
+}
+
+void J1939Layer::UpdateDTCStatuses(char * ucDM_DTC_Data)
+{
+	if((ucDM_DTC_Data != NULL) && (mEffectiveDtcSuppNum > 0)) {
+		memcpy(ucDM_DTC_Data, ucDM_DTC_Status, mEffectiveDtcSuppNum);
+	}
 }

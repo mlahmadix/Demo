@@ -68,7 +68,7 @@ bool J1939DataStats[CeJ1939_MaxParams_Status] = {false};
  * Engine Oil Press. (500mbar): cansend vcan0 06FEEF00#FF.FF.FF.7D.FF.FF.FF.FF
  */
 
-static const struct J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
+static const J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
 {
  {EEC1_PGN,		 ENG_SA,  3, 2 ,  1, 8,  0,  0,   12000  ,5000,  &usEngineSpeed , &J1939DataStats[CeJ1939_EngSpeed_Status]},
  {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,5000,  &usVehicleSpeed, &J1939DataStats[CeJ1939_VehSpeed_Status]},
@@ -130,15 +130,18 @@ int main(){
 	  
 	  
       //Initialize CAN Interface
-      	//struct can_filter J1939Filters[size]={0};
-		struct can_filter* J1939Filters = new can_filter[4];
+		/*struct can_filter* J1939Filters = new can_filter[4];
 		for(unsigned int j = 0; j < 4; j++) {
 			J1939Filters[j].can_id   = ulBuildCanId(CstP1939_iRxDataDef[j].ucSA,
 			                                        CstP1939_iRxDataDef[j].usPGN);
 			J1939Filters[j].can_mask = CAN_EFF_MASK; //J1939 use CAN2.0B only extended frames
-		}
+		}*/
       
-      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4, J1939Filters));
+      //std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4, J1939Filters));
+      int size = sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0]);
+       ALOGD(TAG, __FUNCTION__, "J1939 RX messages = %d", size);
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", CstP1939_iRxDataDef, 
+      sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0])));
       TxCanMsg.can_id = 0x0CFEF100;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
@@ -197,7 +200,7 @@ int main(){
 		  nanosleep(&MainDataDisplayTimer, NULL);
 	  }
       J1939LayerApp->ForceStopCAN();
-      delete J1939Filters;
+      //delete [] J1939Filters;
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");
       return 0;
