@@ -9,16 +9,20 @@
 /*
  *  Diagnostic Messages definition
  */
-#define DM_TP_DT_PGN          0xEBFF //Presence of Diagnostic - Multipacket Frame
-#define DM_TP_CM_BAM_PGN      0xECFF //Sequence of Multipacket Frames
-//Page0 - Sequence 1
-// ...
-//Page0 - Sequence N
-//...
-//PageN - Sequence N
-#define DM_DM1_PGN            0xFECA //Diagnostic Message 1  - Simple Packet
-#define DM_DM2_PGN            0xFECB //Diagnostic Message 2  - Simple Packet
-#define DM_DM13_PGN           0xDF00 //Diagnostic Message 13 - Simple Packet
+enum DM_PgnList
+{
+	DM_TP_DT_PGN, 	   //Presence of Diagnostic - Multipacket Frame
+	DM_TP_CM_BAM_PGN,  //Sequence of Multipacket Frames
+									//Page0 - Sequence 1
+									// ...
+									//Page0 - Sequence N
+									//...
+									//PageN - Sequence N
+	DM_DM1_PGN,       //Diagnostic Message 1  - Simple Packet
+	DM_DM2_PGN,       //Diagnostic Message 2  - Simple Packet
+	DM_DM13_PGN,      //Diagnostic Message 13 - Simple Packet
+	DM_TOT_PGN
+};
 
 /*
  *  Diagnostic Lamps Definition
@@ -52,7 +56,6 @@ typedef struct
 {
     unsigned char  ucSA;            // Source Address for this DTC
     unsigned long  ulSPN;           // Suspect Parameter Number for this DTC
-    unsigned char  ucLamps;         // DTC Associated Lamps
     unsigned char  ucMatchSPN : 1;  // 1 : Must match SPN, 0 : Don't care about SPN
     unsigned char  ucMaskRule : 3;  // 0 : Don't care about FMI 
 								    // 1 : Match FMI1
@@ -60,10 +63,10 @@ typedef struct
 								    // 3 : Match FMI3
                                     // 4 : Match FMI1 or FMI2 
                                     // 5 : Match either FMI1, FMI2 or FMI3
-    unsigned char ucReserved: 4;    // Not Used
     unsigned char ucFMI1;           // FMI1 value
     unsigned char ucFMI2;           // FMI2 value
     unsigned char ucFMI3;           // FMI3 value
+    unsigned char ucLamps;         // DTC Associated Lamps
 }stDM_iDTCDataStruct;
 
 /*
@@ -100,9 +103,10 @@ typedef struct
 class J1939Layer: public CANDrv
 {
 	public:
-		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size);
 		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
-		           struct can_filter * J1939Filters);
+				   const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize);
+		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
+		           const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize, struct can_filter * J1939Filters);
 		~J1939Layer();
 		bool SendJ1939Msg(struct can_frame &TxCanMsg);
 		void ForceStopCAN();
@@ -117,12 +121,19 @@ class J1939Layer: public CANDrv
 		void RemoveJ1939_RXParsers();
 		void InstallJ1939_RXParsers(const J1939_eRxDataInfo * J1939_RxDataParams, int size);
 		void j1939_updateDataValidity(struct CanMsgTstamp NewRecvMsg);
+		void j1939_ParseNewDataMsg(struct CanMsgTstamp NewRecvMsg);
 		void j1939_updateDataParameters(struct CanMsgTstamp NewRecvMsg);
+		void j1939_updateDiagParameters(char * pucDTCDiagBuffer, unsigned int uiDiagBufferSize);
 		unsigned short usGetPGNfromArbID(unsigned long ulArbID);
 		unsigned char ucGetSAfromArbID(unsigned long ulArbID);
 		unsigned long ulBuildExtCanId(unsigned char ucSA, unsigned short usPGN);
 		unsigned long long getCurrentMsTimestamp();
+		void J1939_InitDiagMachine(const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize);
+		void J1939_ExitDiagMachine();
+		
+		//Following definitions are reserved to DTC J1939 messages
 		unsigned long mEffectiveDtcSuppNum;
+		stDM_iDTCDataStruct* mJ1939_SuppDtcDiag;
 		/*
 		 * Status of Different Supported DTC
 		 * 0: DTC Not active
@@ -130,7 +141,14 @@ class J1939Layer: public CANDrv
 		 * 2: DTC was active
 		 * 3: N/A
 		 */
-		unsigned char ucDM_DTC_Status[cstDTC_Num_SupportedDTC];
+		unsigned char * ucDM_DTC_Status;
+		char * mJ1939_DmDTC_TotBuffer;
+		unsigned char mJ1939_DmDTC_MPSeqNumber;//DTC Multipacket Sequence Number
+		unsigned char mJ1939_DmDTC_MPTotSeq;//DTC Total Number of Sequences
+		unsigned short mJ1939_DmDTC_MPTotalBytes;//DTC Total Number of Sequences
+		unsigned short mJ1939_DmDTC_TotalBufferSize;//DTC Total Number of bytes
+		bool mJ1939_DmDTC_NewMPFrameRecv;//New DTC Multi-packet frame received
+		unsigned short mJ1939_DmPgnList[DM_TOT_PGN];
 };
 
 #endif

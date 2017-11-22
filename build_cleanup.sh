@@ -21,7 +21,8 @@ if [ "$1" = "build" ]; then
 	echo "0%   ---- Creating a Temporary build directory"
 	$MKDIR $BUILDIR
 	cd $BUILDIR
-
+	echo "alias croot='cd $BUILDIR'" >> ~/.bashrc
+    . ~/.bashrc
 	echo "25%   ---- configuring project environment"
 	$CMAKE -DLOGDEBUG=$LOGGING -DCANDATALOGGER=$CANLOG -DNMEAPDEBUG=$NMEAPDBG $SRCDIR >/dev/null 2>&1
 	if [ $? -eq 0 ]

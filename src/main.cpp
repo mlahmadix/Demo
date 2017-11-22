@@ -76,6 +76,15 @@ static const J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
  {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,10000,  &usOilPres     , &J1939DataStats[CeJ1939_OilPress_Status]},
 };
 
+static const stDM_iDTCDataStruct CstP1939_iSuppDtcMsg[5] =
+{
+    {0x17,      520211,      1,         DM_MatchFMI1orFMI2orFMI3,       5,      6,     15,     DM_MalfunctionLamp},    //WiFi Module Failure  
+    {0x17,      520212,      1,         DM_DontFMICare,                 0,      0,      0,     DM_MalfunctionLamp},    //GSM Module Failure 
+    {0x17,      520213,      1,         DM_MatchFMI1,                   5,      0,      0,     DM_MalfunctionLamp},    //GPS Module Failure  
+    {0x17,      520214,      1,         DM_MatchFMI1orFMI2,             5,      6,      0,     DM_AmberWarningLamp},    //NetWork not available  
+    {0x17,      520215,      1,         DM_MatchFMI1orFMI2orFMI3,       5,      6,     15,     DM_RedStopLamp}     ,    //Ignition Set OFF 
+};
+
 unsigned long ulBuildCanId(unsigned char ucSA, unsigned short usPGN)
 {
 	unsigned char ucDefPrio = 6;
@@ -137,12 +146,22 @@ int main(){
 			J1939Filters[j].can_mask = CAN_EFF_MASK; //J1939 use CAN2.0B only extended frames
 		}*/
       
-      //std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", &CstP1939_iRxDataDef[0], 4, J1939Filters));
-      int size = sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0]);
-       ALOGD(TAG, __FUNCTION__, "J1939 RX messages = %d", size);
       std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", CstP1939_iRxDataDef, 
-      sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0])));
+      sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0]), CstP1939_iSuppDtcMsg, sizeof(CstP1939_iSuppDtcMsg)/sizeof(CstP1939_iSuppDtcMsg[0])));
+      
+      //Example of Extended CAN Message sending
       TxCanMsg.can_id = 0x0CFEF100;
+      TxCanMsg.can_dlc = 8;
+      strcpy((char*)TxCanMsg.data, "ABCDEFGH");
+      J1939LayerApp->SendJ1939Msg(TxCanMsg);
+      
+      struct timespec MainDataDisplayTimer;
+      MainDataDisplayTimer.tv_sec = 0;
+	  MainDataDisplayTimer.tv_nsec = 300000000;
+	  nanosleep(&MainDataDisplayTimer, NULL);
+      
+      //Example of Standard CAN Message sending
+      TxCanMsg.can_id = 0x743;
       TxCanMsg.can_dlc = 8;
       strcpy((char*)TxCanMsg.data, "ABCDEFGH");
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
@@ -173,9 +192,8 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Pid = %d", TestPosRd.pid);
       ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
-      struct timespec MainDataDisplayTimer;
       MainDataDisplayTimer.tv_sec = 1;
-	  MainDataDisplayTimer.tv_nsec = 0; 
+	  MainDataDisplayTimer.tv_nsec = 300000000;
       while(bIgnitionSet == false){
 		  if(J1939DataStats[CeJ1939_EngSpeed_Status] == true){
 			ALOGD(TAG, __FUNCTION__, "usEngineSpeed  = %d %s", usEngineSpeed, "RPM");
