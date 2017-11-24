@@ -189,10 +189,12 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
     
     int rc = select(sockCanfd + 1, &readSet, NULL, NULL, &tv);
     if (!rc) {
+		 ALOGW(TAG, __FUNCTION__, "CAN Reception Timeout");
          return -2; //timeout error
     }else {
 		if (FD_ISSET(sockCanfd, &readSet)) {
 			if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
+				ALOGW(TAG, __FUNCTION__, "Error CAN Frame Reception");
 				return -1;
 			} else{
 				return (sizeof(struct can_frame));
@@ -225,9 +227,9 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 3000000;
-	int iRecError = 0;
 	while(CanDrvInst->mCANStatus)
 	{
+		int iRecError = 0;
 		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) == -2){
 			//ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
 			;

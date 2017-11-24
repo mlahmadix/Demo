@@ -1,7 +1,9 @@
 #define Sources and Headers
-set (CAN_SRC CANJ1939/can_drv.cpp)
+set (CAN_SRC CANJ1939/can_drv.cpp
+             CANJ1939/j1939.cpp)
 set (CAN_HDR
-     ../inc/can/can_drv.h)
+     ../inc/can/can_drv.h
+     ../inc/can/j1939.h)
      
 set (FIFO_LIB fifo filelog)
 

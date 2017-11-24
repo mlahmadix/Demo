@@ -14,6 +14,7 @@ class eeprom: public FileIo
 	private:
 		const unsigned int mEepromSize;
 		int mEeprom_CSum;
+		bool mE2promInit;
 		
 };
 

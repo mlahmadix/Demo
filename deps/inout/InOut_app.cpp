@@ -1,4 +1,4 @@
-#include "main_app/InOutApp.h"
+#include "inout/InOutApp.h"
 #include "logger/lib_logger.h"		
 
 #define TAG "INOUT_APP"

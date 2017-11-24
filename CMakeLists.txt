@@ -16,35 +16,37 @@ set (MAIN_INC
      inc/sharedMem/lib_sharedMem.h
      inc/signal/lib_signal.h
      inc/nmeaparser/NmeaParser.h
+     inc/can/j1939.h
      inc/main_app/io_mapping.h
-     inc/main_app/InOutApp.h
-     inc/main_app/j1939.h
+     inc/inout/InOutApp.h
      inc/main_app/eeprom.h)
 
 #define Sources, dlls and libs
 set (STA_LIB logger filelog canj1939 fifo sharedmem signal inout nmeaparser ioutils)
 set (MAIN_SRC   src/main.cpp
-				src/InOut_app.cpp
-				src/j1939.cpp
 				src/eeprom.cpp)
 
 if(NMEAPDEBUG)
-#add definitions
-add_definitions (-DNMEAP_DEBUG)
+	#add definitions
+	add_definitions (-DNMEAP_DEBUG)
 endif()
 
 if(CANDATALOGGER)
-#add definitions
-add_definitions (-DCANDATALOGGER)
+	#add definitions
+	add_definitions (-DCANDATALOGGER)
 endif()
 
 if(LOGDEBUG)
-#add definitions
-add_definitions (-DLOGDEBUG)
+	#add definitions
+	add_definitions (-DLOGDEBUG)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
+
+if (CMAKE_BUILD_TYPE STREQUAL DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+endif()
 
 #Check if Boost is available on system
 find_package(Boost 1.40.0 COMPONENTS date_time filesystem system)

@@ -4,8 +4,8 @@
 #include "logger/lib_logger.h"
 #include "sharedMem/lib_sharedMem.h"
 #include "signal/lib_signal.h"
-#include "main_app/InOutApp.h"
-#include "main_app/j1939.h"
+#include "inout/InOutApp.h"
+#include "can/j1939.h"
 #include "nmeaparser/NmeaParser.h"
 #include "main_app/eeprom.h"
 
@@ -70,10 +70,10 @@ bool J1939DataStats[CeJ1939_MaxParams_Status] = {false};
 
 static const J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
 {
- {EEC1_PGN,		 ENG_SA,  3, 2 ,  1, 8,  0,  0,   12000  ,5000,  &usEngineSpeed , &J1939DataStats[CeJ1939_EngSpeed_Status]},
- {CCVS_PGN,		 ENG_SA,  1, 2 ,  1, 256,0,  0,   250    ,5000,  &usVehicleSpeed, &J1939DataStats[CeJ1939_VehSpeed_Status]},
- {ENG_TEMP1_PGN, ENG_SA,  0, 1 ,  1, 1,  -40,-40, 210    ,10000,  &scCoolTemp    , &J1939DataStats[CeJ1939_CoolTemp_Status]},
- {ENG_FLD_PGN,	 ENG_SA,  3, 1 ,  4, 1,  0,  0,   1000   ,10000,  &usOilPres     , &J1939DataStats[CeJ1939_OilPress_Status]},
+ {EEC1_PGN,		 ENG_SA,  3, 2,  1, 8  ,   0 ,    0,    12000  ,5000,  &usEngineSpeed  , &J1939DataStats[CeJ1939_EngSpeed_Status]},
+ {CCVS_PGN,		 ENG_SA,  1, 2,  1, 256,   0 ,    0,    250    ,5000,  &usVehicleSpeed , &J1939DataStats[CeJ1939_VehSpeed_Status]},
+ {ENG_TEMP1_PGN, ENG_SA,  0, 1,  1, 1  ,  -40,  -40,    210    ,5000,  &scCoolTemp     , &J1939DataStats[CeJ1939_CoolTemp_Status]},
+ {ENG_FLD_PGN,	 ENG_SA,  3, 1,  4, 1  ,   0 ,    0,    1000   ,5000,  &usOilPres      , &J1939DataStats[CeJ1939_OilPress_Status]},
 };
 
 static const stDM_iDTCDataStruct CstP1939_iSuppDtcMsg[5] =
@@ -117,7 +117,6 @@ int main(){
        */
 	  std::shared_ptr<eeprom> E2PConfigData(new eeprom("./MainE2p.bin", 1024)); //1KB-E2PROM Data
 	  char * Buffer = new char [1024];
-	  char * RdBuffer = new char [1024];
 	  for (int i = 0; i < 1024; i++)
 		Buffer[i] = (char)((0x30 +i)&0xFF);
 	  E2PConfigData->eeprom_write(Buffer, 0, 1024);
@@ -129,13 +128,12 @@ int main(){
 	  }
 	  
 	  delete [] Buffer;
-	  delete [] RdBuffer;
 	  /* You can verify manually content of E2PROM dump buffer
 	   * using the hexedit utility
        */
       std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
 
-	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_ParkOut);
+	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_RightSignOut);
 	  
 	  
       //Initialize CAN Interface
@@ -150,9 +148,10 @@ int main(){
       sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0]), CstP1939_iSuppDtcMsg, sizeof(CstP1939_iSuppDtcMsg)/sizeof(CstP1939_iSuppDtcMsg[0])));
       
       //Example of Extended CAN Message sending
-      TxCanMsg.can_id = 0x0CFEF100;
+      TxCanMsg.can_id = ulBuildCanId(0x00, 0xFEF1);
       TxCanMsg.can_dlc = 8;
-      strcpy((char*)TxCanMsg.data, "ABCDEFGH");
+      for(int j = 0; j < TxCanMsg.can_dlc; j++)
+    	  TxCanMsg.data[j] = 0x30 + j;
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
       struct timespec MainDataDisplayTimer;
@@ -163,7 +162,8 @@ int main(){
       //Example of Standard CAN Message sending
       TxCanMsg.can_id = 0x743;
       TxCanMsg.can_dlc = 8;
-      strcpy((char*)TxCanMsg.data, "ABCDEFGH");
+      for(int k = 0; k < TxCanMsg.can_dlc; k++)
+    	  TxCanMsg.data[k] = 0x30 + k;
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
       std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/ttyS0", 115200));

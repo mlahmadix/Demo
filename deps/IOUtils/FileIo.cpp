@@ -73,7 +73,6 @@ FileIo::~FileIo()
 
 int FileIo::FileIo_ReadStr(char* ReadBuff, unsigned int Offset, unsigned int ReadLen)
 {
-	unsigned int rdSize = 0;
 	int iRet = 0;
 	if(FileIo_GetStatus() != CeFile_Opened) {
 		ALOGE(TAG, __FUNCTION__, "File is Busy");
@@ -81,6 +80,7 @@ int FileIo::FileIo_ReadStr(char* ReadBuff, unsigned int Offset, unsigned int Rea
 	}
 	FileIo_SetStatus(CeFile_Busy);
 	if (!FileIo_SetOffset(Offset)) {
+		unsigned int rdSize = 0;
 		if((rdSize = static_cast<int>(read(mFileHndle, (void*)ReadBuff, ReadLen))) != ReadLen) {
 			ALOGE(TAG, __FUNCTION__, "Not enough Data read = %d", rdSize);
 			iRet = -2; //Not All Data have been read
@@ -95,7 +95,6 @@ int FileIo::FileIo_ReadStr(char* ReadBuff, unsigned int Offset, unsigned int Rea
 
 int FileIo::FileIo_WriteStr(char * WriteBuff, unsigned int Offset, unsigned int WriteLen)
 {
-	unsigned int wrSize = 0;
 	int iRet = 0;
 	if(FileIo_GetStatus() != CeFile_Opened) {
 		ALOGE(TAG, __FUNCTION__, "File is Busy");
@@ -105,6 +104,7 @@ int FileIo::FileIo_WriteStr(char * WriteBuff, unsigned int Offset, unsigned int 
 	if (!FileIo_SetOffset(Offset)) {
 		ALOGD(TAG, __FUNCTION__, "Offset OK 2");
 		if(mFileHndle > 0) {
+			unsigned int wrSize = 0;
 			if((wrSize = static_cast<int>(write(mFileHndle, (void*)WriteBuff, WriteLen))) != WriteLen){
 				ALOGE(TAG, __FUNCTION__, "Not all Data have been written = %d", wrSize);
 				iRet = -2;
@@ -143,8 +143,7 @@ int FileIo::FileIo_Mirroring(string & DestFile)
 	}
 	int iRet = 0;
 	FileIo_SetStatus(CeFile_Busy);
-	int outFile = -1;
-	outFile = open(DestFile.c_str(), O_RDWR|O_CREAT|O_SYNC);
+	int outFile = open(DestFile.c_str(), O_RDWR|O_CREAT|O_SYNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
 	if(outFile > 0){
 		unsigned int PrevOffset = mFileOffset;
 		if (!FileIo_SetOffset(0)) {
@@ -187,9 +186,9 @@ int FileIo::FileIo_GetOffset()
 int FileIo::FileIo_CalculateCS(unsigned int uiBegPos, unsigned int uiEndPos)
 {
 	int iCalcCS = 0;
-	int ReadErr = 0;
 	if((uiEndPos > 0) && (uiBegPos > 0) && (uiEndPos > uiBegPos)) {
 		char * CalcBuffer = new char[uiEndPos-uiBegPos +1];
+		int ReadErr = 0;
 		if((ReadErr = FileIo_ReadStr(CalcBuffer, uiBegPos, uiEndPos-uiBegPos)) < 0) {
 			ALOGE(TAG, __FUNCTION__, "Cannot perform CS reading = %d", ReadErr);
 			return -1;

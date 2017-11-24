@@ -1,0 +1,44 @@
+[Buildset]
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x08\x00D\x00e\x00m\x00o)
+
+[CMake]
+Build Directory Count=1
+Current Build Directory Index=0
+ProjectRootRelative=./
+
+[CMake][CMake Build Directory 0]
+Build Directory Path=file:///home/lab/tuto/github/Demo/build
+Build Type=Debug
+CMake Binary=file:///usr/bin/cmake
+Environment Profile=
+Extra Arguments=-DLOGDEBUG=ON -DCANDATALOGGER=ON -DNMEAPDEBUG=ON
+Install Directory=file:///home/lab/tuto/github/Demo/build/exe
+
+[Defines And Includes][Compiler]
+Name=GCC
+Path=gcc
+Type=GCC
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=HelloWorld
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x02\x00\x00\x00\x08\x00D\x00e\x00m\x00o\x00\x00\x00\x14\x00H\x00e\x00l\x00l\x00o\x00W\x00o\x00r\x00l\x00d)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/lab/tuto/github/Demo/build/exe/HelloWorld
+External Terminal=sudo konsole --noclose --workdir %workdir -e %exe
+Project Target=Demo,HelloWorld
+Use External Terminal=true
+Working Directory=
+isExecutable=true
+
+[Project]
+VersionControlSupport=kdevgit

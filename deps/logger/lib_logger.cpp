@@ -52,11 +52,12 @@ void ALOG_GetTimestamp(std::string &timestamp)
 template <priority p>
 void ALOGX(std::string tag, std::string func, std::string message, va_list vargs)
 {
-	if ( p <= CeLoggerDebug ){
-		#ifndef LOGDEBUG
+	#ifndef LOGDEBUG
+		if ( p != CeLoggerDebug ){
 			return;
-		#endif
-	}
+		}
+	#endif
+
 	char buffer[1024]={0};
 	char BufferCore[1024]={0};
 	std::string timestamp;

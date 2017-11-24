@@ -6,6 +6,7 @@
 #define J1939_BaudRate 250000
 #define cstJ1939_Num_MsgRX 100
 #define cstDTC_Num_SupportedDTC 255
+#define cstDTC_Def_Comm_Timeout 5000 //5s
 /*
  *  Diagnostic Messages definition
  */
@@ -56,8 +57,8 @@ typedef struct
 {
     unsigned char  ucSA;            // Source Address for this DTC
     unsigned long  ulSPN;           // Suspect Parameter Number for this DTC
-    unsigned char  ucMatchSPN : 1;  // 1 : Must match SPN, 0 : Don't care about SPN
-    unsigned char  ucMaskRule : 3;  // 0 : Don't care about FMI 
+    unsigned char  ucMatchSPN    : 1;  // 1 : Must match SPN, 0 : Don't care about SPN
+    unsigned char  ucFMIMaskRule : 3;  // 0 : Don't care about FMI 
 								    // 1 : Match FMI1
 								    // 2 : Match FMI2
 								    // 3 : Match FMI3
@@ -123,7 +124,7 @@ class J1939Layer: public CANDrv
 		void j1939_updateDataValidity(struct CanMsgTstamp NewRecvMsg);
 		void j1939_ParseNewDataMsg(struct CanMsgTstamp NewRecvMsg);
 		void j1939_updateDataParameters(struct CanMsgTstamp NewRecvMsg);
-		void j1939_updateDiagParameters(char * pucDTCDiagBuffer, unsigned int uiDiagBufferSize);
+		void j1939_updateDiagParameters(char * DiagTotalBuffer, unsigned long ulTotSize);
 		unsigned short usGetPGNfromArbID(unsigned long ulArbID);
 		unsigned char ucGetSAfromArbID(unsigned long ulArbID);
 		unsigned long ulBuildExtCanId(unsigned char ucSA, unsigned short usPGN);
@@ -141,14 +142,28 @@ class J1939Layer: public CANDrv
 		 * 2: DTC was active
 		 * 3: N/A
 		 */
+		enum J1939_DmDTC_Status {
+			CeJ1939_DmDTC_OFF = 0,
+			CeJ1939_DmDTC_ON,
+			CeJ1939_DmDTC_INACTIVE,
+			CeJ1939_DmDTC_NA,
+			CeJ1939_DmDTC_TOTAL
+		};
 		unsigned char * ucDM_DTC_Status;
 		char * mJ1939_DmDTC_TotBuffer;
 		unsigned char mJ1939_DmDTC_MPSeqNumber;//DTC Multipacket Sequence Number
 		unsigned char mJ1939_DmDTC_MPTotSeq;//DTC Total Number of Sequences
 		unsigned short mJ1939_DmDTC_MPTotalBytes;//DTC Total Number of Sequences
+		unsigned short mJ1939_DmDTC_MPRemainBytes;//DTC Total Number of Sequences
 		unsigned short mJ1939_DmDTC_TotalBufferSize;//DTC Total Number of bytes
 		bool mJ1939_DmDTC_NewMPFrameRecv;//New DTC Multi-packet frame received
-		unsigned short mJ1939_DmPgnList[DM_TOT_PGN];
+		unsigned long mJ1939_DmDTC_TimeoutValue; //DM Multipacket Timeout counter value
+		bool mJ1939_DmDTC_MPValidData;  //DM Multipacket Sequence Data validity check
+		unsigned short mJ1939_DmPgnList[DM_TOT_PGN];//J1939 DTC List supported
+		//check DTC Lamp received value
+		bool j1939_CheckDTCLamps(unsigned char ucLamps, unsigned char ucLampsDTCMask);
+		bool j1939_CheckFMIMatch(char * pucDiagBuffer, unsigned long ulLength, unsigned char ucFMI);
+		bool j1939_CheckSPNFMIMatch(char * pucDiagBuffer, unsigned long ulLength, unsigned long ulSPN, unsigned char ucFMI);
 };
 
 #endif
