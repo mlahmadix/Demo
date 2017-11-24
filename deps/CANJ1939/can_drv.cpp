@@ -130,14 +130,15 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 	}
 	
 	strcpy(ifr.ifr_name, CanInfName.c_str());
-	if(ioctl(sockCanfd, SIOCGIFINDEX, &ifr)){
+	if(ioctl(sockCanfd, SIOCGIFINDEX, &ifr) < 0){
 		ALOGE(TAG, __FUNCTION__, "Cannot Retrieve Interface Index");
 		return false;
 	}
 	
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
-	addr.can_family = PF_CAN;
+	addr.can_family  = AF_CAN;
+	
 	/* Set CAN Socket to Non-Blocking
 	 * So we can interrupt the read routing */
 	int flags = fcntl(sockCanfd, F_GETFL, 0);
@@ -159,17 +160,25 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 		return false;
 	}
 	
+	/* bind socket to the can0 interface */
+	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
+	
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, CanInfName.c_str(), strlen(CanInfName.c_str()));
+	//Get Interface Status
+	if (ioctl(sockCanfd, SIOCGIFINDEX, &ifr) < 0) {
+		return 0;
+	}
+	
 	//Put CAN Interface UP
 	if (!(ifr.ifr_flags & IFF_UP)) {
+		ALOGW(TAG, __FUNCTION__, "Interface %s is Down", CanInfName.c_str());
+		ALOGW(TAG, __FUNCTION__, "Set Interface %s Up", CanInfName.c_str());
 		ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
-		if (ioctl(sockCanfd, SIOCSIFFLAGS, &ifr) != 0) {
+		if (ioctl(sockCanfd, SIOCSIFFLAGS, &ifr) < 0) {
 			ALOGE(TAG, __FUNCTION__, "Cannot Set Interface Up");
 			return false;
-		}else {
-			/* bind socket to the can0 interface */
-			bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
-			ALOGD(TAG, __FUNCTION__, "Set interface %s Up successfully",CanInfName.c_str());
-		}		
+		}
 	}
 	return true;
 }
@@ -194,7 +203,6 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
     }else {
 		if (FD_ISSET(sockCanfd, &readSet)) {
 			if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
-				ALOGW(TAG, __FUNCTION__, "Error CAN Frame Reception");
 				return -1;
 			} else{
 				return (sizeof(struct can_frame));
@@ -230,11 +238,9 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	while(CanDrvInst->mCANStatus)
 	{
 		int iRecError = 0;
-		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) == -2){
+		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) < 0){
 			//ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
 			;
-		}else if (iRecError == -1){
-			ALOGE(TAG, __FUNCTION__, "CAN Reception Error");
 		}else {
 			//CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing

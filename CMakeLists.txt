@@ -45,7 +45,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-varargs")
 
 if (CMAKE_BUILD_TYPE STREQUAL DEBUG)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O3")
 endif()
 
 #Check if Boost is available on system
