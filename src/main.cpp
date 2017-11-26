@@ -166,7 +166,7 @@ int main(){
     	  TxCanMsg.data[k] = 0x30 + k;
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
-      std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/ttyS0", 115200));
+      std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/tty0", 115200));
       
 	  //Shared memory testing Structure
 	  struct ProgramPosition TestPosWr, TestPosRd;
@@ -192,6 +192,8 @@ int main(){
       ALOGD(TAG, __FUNCTION__, "Read Struct Pid = %d", TestPosRd.pid);
       ALOGD(TAG, __FUNCTION__, "Read Struct Latitude = %.4f", TestPosRd.latitude);
       ALOGD(TAG, __FUNCTION__, "Read Struct Longitude = %.4f", TestPosRd.longitude);
+      
+      
       MainDataDisplayTimer.tv_sec = 1;
 	  MainDataDisplayTimer.tv_nsec = 300000000;
       while(bIgnitionSet == false){

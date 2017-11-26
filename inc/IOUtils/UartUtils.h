@@ -26,7 +26,7 @@ class SerialPort
 		boost::asio::serial_port * SerialportHnd;
 		SerialPortStatus mSerialPortStatus;
 		unsigned long mSerialPortBaudrate;
-		std::string mComPort;
+		const char * mComPort;
 		inline unsigned long getSerialPortBaudrate() { return mSerialPortBaudrate; }
 		void SerialPortFlushData();
 		char SerialPortReadChar();

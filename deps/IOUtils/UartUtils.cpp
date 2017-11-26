@@ -1,6 +1,7 @@
 #include <boost/asio/serial_port.hpp> 
 #include <boost/asio.hpp>
-#include <string> 
+#include <string>
+#include <iostream>
 #include "IOUtils/UartUtils.h"
 #include "logger/lib_logger.h"
 
@@ -14,12 +15,13 @@ SerialPort::SerialPort(const char * ucUartPortPath, unsigned long usBaudrate, bo
 SerialportHnd(NULL),
 mSerialPortStatus(CeStatus_UartIdle),
 mSerialPortBaudrate(usBaudrate),
-mComPort(string(ucUartPortPath))
+mComPort(ucUartPortPath)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	if(ucUartPortPath != NULL) {
 		SerialportHnd = new boost::asio::serial_port(SerialPortIO);
-		SerialportHnd->open(mComPort.c_str());
+		cout << "serial port name : " << string(ucUartPortPath) << endl; 
+		SerialportHnd->open(mComPort);
 		SerialportHnd->set_option(asio::serial_port_base::baud_rate(usBaudrate));
 		SerialportHnd->set_option(asio::serial_port_base::parity(asio::serial_port_base::parity::even));
 		SerialportHnd->set_option(asio::serial_port_base::character_size(asio::serial_port_base::character_size(CharSize)));
@@ -58,7 +60,7 @@ SerialPort::SerialPortStatus SerialPort::SetSerialPortBaudrate(unsigned long usB
 				SerialPortFlushData();
 				SerialportHnd->cancel();
 				SerialportHnd->close();
-				SerialportHnd->open(mComPort.c_str());
+				SerialportHnd->open(mComPort);
 				SerialportHnd->set_option(asio::serial_port_base::baud_rate(usBaudrate));
 				if(SerialportHnd->is_open()) {
 					mSerialPortStatus = CeStatus_UartInitOK;
