@@ -16,4 +16,6 @@ cansend vcan0 06FEEF00#FF.FF.FF.7D.FF.FF.FF.FF
 cansend vcan0 06FEF100#FF.00.82.FF.FF.FF.FF.FF
 #Engine Coolant Temperature = -25°T
 cansend vcan0 06FEEE00#0F.FF.FF.FF.FF.FF.FF.FF
+#Volume Level (50%)
+cansend vcan0 06FEEA00#FF.FF.FF.FF.FF.FF.FF.19
 exit 0

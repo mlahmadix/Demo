@@ -40,6 +40,7 @@ struct ProgramPosition{
 #define CCVS_PGN		0xFEF1
 #define ENG_TEMP1_PGN	0xFEEE
 #define ENG_FLD_PGN		0xFEEF
+#define ENG_VOL_PGN	    0xFEEA
 
 //****************************************************************************//
 //J1939 Parameters
@@ -48,12 +49,14 @@ unsigned short usEngineSpeed = 0; //Engine RPM in Revolution Per Minute
 unsigned short usVehicleSpeed = 0;//Vehicle Speed in Km/h
 signed char    scCoolTemp = 0;//Engine Coolant Temperature
 unsigned short  usOilPres = 0;//Engine Oil Pressure
+unsigned short  usVolLvl = 0;//Engine Volume Level
 
 enum J1939DataStatus {
 	CeJ1939_EngSpeed_Status = 0,
 	CeJ1939_VehSpeed_Status,
 	CeJ1939_CoolTemp_Status,
 	CeJ1939_OilPress_Status,
+	CeJ1939_VolLevel_Status,
 	CeJ1939_MaxParams_Status
 };
 bool J1939DataStats[CeJ1939_MaxParams_Status] = {false};
@@ -66,14 +69,16 @@ bool J1939DataStats[CeJ1939_MaxParams_Status] = {false};
  * Vehicle Speed (130 Km/h)   : cansend vcan0 06FEF100#FF.00.82.FF.FF.FF.FF.FF
  * Engine Cool. Temp (-25°C)  : cansend vcan0 06FEEE00#0F.FF.FF.FF.FF.FF.FF.FF
  * Engine Oil Press. (500mbar): cansend vcan0 06FEEF00#FF.FF.FF.7D.FF.FF.FF.FF
+ * Volume Level (50%)         : cansend vcan0 06FEEA00#FF.FF.FF.FF.FF.FF.FF.19
  */
 
-static const J1939_eRxDataInfo CstP1939_iRxDataDef[4] =
+static const J1939_eRxDataInfo CstP1939_iRxDataDef[5] =
 {
  {EEC1_PGN,		 ENG_SA,  3, 2,  1, 8  ,   0 ,    0,    12000  ,5000,  &usEngineSpeed  , &J1939DataStats[CeJ1939_EngSpeed_Status]},
  {CCVS_PGN,		 ENG_SA,  1, 2,  1, 256,   0 ,    0,    250    ,5000,  &usVehicleSpeed , &J1939DataStats[CeJ1939_VehSpeed_Status]},
  {ENG_TEMP1_PGN, ENG_SA,  0, 1,  1, 1  ,  -40,  -40,    210    ,5000,  &scCoolTemp     , &J1939DataStats[CeJ1939_CoolTemp_Status]},
  {ENG_FLD_PGN,	 ENG_SA,  3, 1,  4, 1  ,   0 ,    0,    1000   ,5000,  &usOilPres      , &J1939DataStats[CeJ1939_OilPress_Status]},
+ {ENG_VOL_PGN,	 ENG_SA,  7, 1,  4, 2  ,   0 ,    0,    1000   ,5000,  &usVolLvl      , &J1939DataStats[CeJ1939_VolLevel_Status]},
 };
 
 static const stDM_iDTCDataStruct CstP1939_iSuppDtcMsg[5] =
@@ -216,6 +221,11 @@ int main(){
 			ALOGD(TAG, __FUNCTION__, "ucOilPres      = %d %s", usOilPres, "mBar");
 		  }else {
 			  ALOGD(TAG, __FUNCTION__, "ucOilPres      = %s %s", "----", "mBar");
+		  }
+		  if(J1939DataStats[CeJ1939_VolLevel_Status] == true){
+			ALOGD(TAG, __FUNCTION__, "usVolLvl      = %d %s", usVolLvl, "%");
+		  }else {
+			  ALOGD(TAG, __FUNCTION__, "usVolLvl      = %s %s", "----", "%");
 		  }
 		  nanosleep(&MainDataDisplayTimer, NULL);
 	  }
