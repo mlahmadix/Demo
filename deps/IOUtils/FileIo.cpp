@@ -18,6 +18,20 @@ mFileAccess(FileAccess),
 mBinAscii(binary),
 mFileRunStatus(CeFile_Idle)
 {
+  /* To create a Binary File with Fixed size use following command:
+   * sudo dd if=/dev/zero of=./MainE2p.bin bs=16 count=64
+   * sector size should be a multiply of 16
+   * Total size = bs*count
+   * /dev/zero is used to set all bytes to 0x00
+   */
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "dd if=/dev/zero of=%s bs=16 count=%d", FilePath.c_str(), FileDataSize / 16);
+    FILE *fd = popen(cmd,"w");
+    if(fd){
+        ALOGD(TAG, __FUNCTION__, "MainE2p.bin Binary File Created");
+        pclose(fd);
+    }
+
 	InitFileAccess(FilePath, FileAccess, binary, FixedFileSize, FileDataSize);
 }
 
