@@ -111,7 +111,9 @@ void SignalHandler(int signo)
 
 int main(){
 
-      ALOGI(TAG, __FUNCTION__, "Main Program Init");
+	  initTCPLoggerServer();
+	  ALOGI(TAG, __FUNCTION__, "Main Program Init");
+	  struct timespec MainDataDisplayTimer;
       //initialize a Signal Catcher for SIGINT
       std::shared_ptr<SignalApi> InterruptSignal(new SignalApi(SIGINT,SignalHandler));
       /* To create a Binary File with Fixed size use following command:
@@ -159,7 +161,6 @@ int main(){
     	  TxCanMsg.data[j] = 0x30 + j;
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
-      struct timespec MainDataDisplayTimer;
       MainDataDisplayTimer.tv_sec = 0;
 	  MainDataDisplayTimer.tv_nsec = 300000000;
 	  nanosleep(&MainDataDisplayTimer, NULL);
@@ -230,6 +231,7 @@ int main(){
 		  nanosleep(&MainDataDisplayTimer, NULL);
 	  }
       J1939LayerApp->ForceStopCAN();
+      StopTCPLoggerServer();
       //delete [] J1939Filters;
       sleep(2);
       ALOGI(TAG, __FUNCTION__, "Good Bye");

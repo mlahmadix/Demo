@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "logger/lib_logger.h"
+#include "IOUtils/SocketIo.h"
 
 using namespace std;
 namespace pt = boost::posix_time;
@@ -38,6 +39,8 @@ const char * PrioColours[CeMaxPriorities]={
 	KRED
 };
 
+static TCPServer * TcpLoggerServer = NULL;
+
 void ALOG_GetTimestamp(std::string &timestamp)
 {
 	pt::ptime now = pt::second_clock::local_time();
@@ -65,7 +68,11 @@ void ALOGX(std::string tag, std::string func, std::string message, va_list vargs
 	va_copy(vlist, vargs);
 	ALOG_GetTimestamp(timestamp);
 	vsprintf(BufferCore, message.c_str(), vlist);
-    sprintf(buffer,"%s\t%s\t%s\t%s\t%s",timestamp.c_str(), tag.c_str(), func.c_str(), TabPrio[p], BufferCore);
+    sprintf(buffer,"%s\t%s\t%s\t%s\t%s\n",timestamp.c_str(), tag.c_str(), func.c_str(), TabPrio[p], BufferCore);
+    if(TcpLoggerServer) {
+		if(TcpLoggerServer->GetTcpServerConnStat() == true)
+			TcpLoggerServer->TcpSendCallback(buffer);
+	}
     cout << PrioColours[p] << buffer << endl;
     va_end(vlist);
 }
@@ -98,4 +105,17 @@ void ALOGD(std::string tag, std::string func, std::string message, ...)
     va_start(ap, (char*)message.c_str());
 	ALOGX<CeLoggerDebug>(tag, func, message, ap);
 	va_end(ap);
+}
+
+void initTCPLoggerServer()
+{
+	TcpLoggerServer = new TCPServer(5555);
+}
+
+void StopTCPLoggerServer()
+{
+	if(TcpLoggerServer) {
+		TcpLoggerServer->StopTcpServer();
+		delete TcpLoggerServer;
+	}
 }

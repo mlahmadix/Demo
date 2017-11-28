@@ -8,4 +8,7 @@ void ALOGW(std::string tag, std::string func, std::string message, ...);
 void ALOGI(std::string tag, std::string func, std::string message, ...);
 void ALOGD(std::string tag, std::string func, std::string message, ...);
 
+void initTCPLoggerServer();
+void StopTCPLoggerServer();
+
 #endif

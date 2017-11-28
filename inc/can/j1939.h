@@ -7,6 +7,9 @@
 #define cstJ1939_Num_MsgRX 100
 #define cstDTC_Num_SupportedDTC 255
 #define cstDTC_Def_Comm_Timeout 5000 //5s
+
+#define NO_CAN_ID 0xFFFFFFFFU
+
 /*
  *  Diagnostic Messages definition
  */

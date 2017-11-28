@@ -513,7 +513,7 @@ void * J1939Layer::pvthJ1939ParseFrames_Exe (void* context)
 		}else {
 			//This is Tricky as we are in a Static context
 			NewRecvMsg.ulMsgTstamp = 0;
-			NewRecvMsg.RxCanMsg.can_id = 0xFFFFFFFF;
+			NewRecvMsg.RxCanMsg.can_id = NO_CAN_ID;
 			NewRecvMsg.RxCanMsg.can_dlc = 0;
 		}
 		J1939LayerInst->j1939_updateDataValidity(NewRecvMsg);
