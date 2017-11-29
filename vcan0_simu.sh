@@ -8,14 +8,28 @@ then
 	echo "sudo apt-get install can-utils"
 	exit 1
 fi
-#Engine Speed = 2500 RMP
+
+# Prompt for a loop count ...
+printf "Please enter your loop count: "
+read -r LOOP_COUNT
+counter=0
+while true; do
+echo "Engine Speed = 2500 RMP"
 cansend vcan0 06F00400#FF.FF.FF.20.4E.FF.FF.FF
-#Engine Oil Pressure = 144 mBar
+echo "Engine Oil Pressure = 144 mBar"
 cansend vcan0 06FEEF00#FF.FF.FF.7D.FF.FF.FF.FF
-#Vehicle Speed = 130Km/h
+echo "Vehicle Speed = 130Km/h"
 cansend vcan0 06FEF100#FF.00.82.FF.FF.FF.FF.FF
-#Engine Coolant Temperature = -25°T
+echo "Engine Coolant Temperature = -25°T"
 cansend vcan0 06FEEE00#0F.FF.FF.FF.FF.FF.FF.FF
-#Volume Level (50%)
+echo "Volume Level (50%)"
 cansend vcan0 06FEEA00#FF.FF.FF.FF.FF.FF.FF.19
+if [ $counter -gt $LOOP_COUNT ]; then
+   echo "Counter limit reached, exit script."
+   exit 1
+else
+counter=$(($counter + 1))
+fi
+sleep 2
+done
 exit 0
