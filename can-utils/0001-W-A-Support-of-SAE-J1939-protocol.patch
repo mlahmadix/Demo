@@ -1,0 +1,58 @@
+From 857306efca664e3aa350a375463652a71d3040ee Mon Sep 17 00:00:00 2001
+From: Imed BEN ROMDHANE <imedx.ben.romdhane@intel.com>
+Date: Mon, 4 Dec 2017 15:12:48 +0100
+Subject: [PATCH] W/A: Support of SAE-J1939 protocol
+
+Signed-off-by: Imed BEN ROMDHANE <imedx.ben.romdhane@intel.com>
+---
+ cansend.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/cansend.c b/cansend.c
+index 3938029..e975ab3 100644
+--- a/cansend.c
++++ b/cansend.c
+@@ -55,6 +55,8 @@
+ 
+ #include "lib.h"
+ 
++#define CAN_J1939 5
++
+ int main(int argc, char **argv)
+ {
+ 	int s; /* can raw socket */ 
+@@ -89,7 +91,7 @@ int main(int argc, char **argv)
+ 	}
+ 
+ 	/* open socket */
+-	if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
++	if ((s = socket(PF_CAN, SOCK_DGRAM, CAN_J1939)) < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+@@ -120,11 +122,11 @@ int main(int argc, char **argv)
+ 		}
+ 
+ 		/* interface is ok - try to switch the socket into CAN FD mode */
+-		if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES,
++		/*if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES,
+ 			       &enable_canfd, sizeof(enable_canfd))){
+ 			printf("error when enabling CAN FD support\n");
+ 			return 1;
+-		}
++		}*/
+ 
+ 		/* ensure discrete CAN FD length values 0..8, 12, 16, 20, 24, 32, 64 */
+ 		frame.len = can_dlc2len(can_len2dlc(frame.len));
+@@ -134,7 +136,7 @@ int main(int argc, char **argv)
+ 	/* This is obsolete as we do not read from the socket at all, but for */
+ 	/* this reason we can remove the receive list in the Kernel to save a */
+ 	/* little (really a very little!) CPU usage.                          */
+-	setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
++	//setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, NULL, 0);
+ 
+ 	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+ 		perror("bind");
+-- 
+2.7.4
+

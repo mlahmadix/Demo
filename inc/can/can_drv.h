@@ -34,7 +34,7 @@ class CANDrv
 		};
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
-				int CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout); //timeout expressed in milliseconds
+		int CanRecvMsg(struct can_frame &RxCanMsg);
 		bool CanSendMsg(struct can_frame &TxCanMsg);
 		bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size);
 		bool getCANStatus();

@@ -11,6 +11,8 @@ using namespace std::chrono;
 
 #define TAG "CANDrv"
 
+#define CAN_J1939 5
+
 CANDrv::CANDrv(string FifoName, struct can_filter * CANFilters):
 mCANStatus(false),
 sockCanfd(-1),
@@ -123,7 +125,7 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 	memset(&ifr, 0x0, sizeof(ifr));
 	memset(&addr, 0x0, sizeof(addr));
 	/* open CAN_RAW socket */
-	sockCanfd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+	sockCanfd = socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
 	if(sockCanfd <=0) {
 		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
 		return false;
@@ -145,12 +147,7 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 	if(flags != -1) {
 		flags |= O_NONBLOCK;
 		if(fcntl(sockCanfd, F_SETFL, flags) != -1){
-			if((CANFilters != NULL) && (sizeof(CANFilters)/sizeof(CANFilters[0]) > 0)) {
-				if(setsockopt(sockCanfd, SOL_CAN_RAW, CAN_RAW_FILTER, &CANFilters, sizeof(CANFilters)) != 0){
-					ALOGE(TAG, __FUNCTION__, "Cannot Apply CAN Filters");
-					return false;
-				}
-			}
+			ALOGD(TAG, __FUNCTION__, "Non-Block Set Successfully");
 		}else {
 			ALOGE(TAG, __FUNCTION__, "Cannot Set Non-Block Socket");
 			return false;
@@ -183,31 +180,12 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 	return true;
 }
 
-int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg, unsigned long timeout)
+int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 {
-	struct timeval tv;
-	if(timeout > 1000) { // There's seconds in timeout
-		tv.tv_sec = timeout % 1000;
-	} else {
-		tv.tv_sec = 0;
-	}
-	tv.tv_usec = (timeout * 1000) - (tv.tv_sec * 1000000);
-	fd_set readSet;
-	FD_ZERO(&readSet);
-    FD_SET(sockCanfd, &readSet);
-    
-    int rc = select(sockCanfd + 1, &readSet, NULL, NULL, &tv);
-    if (!rc) {
-		 ALOGW(TAG, __FUNCTION__, "CAN Reception Timeout");
-         return -2; //timeout error
-    }else {
-		if (FD_ISSET(sockCanfd, &readSet)) {
-			if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
-				return -1;
-			} else{
-				return (sizeof(struct can_frame));
-			}
-		}
+	if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
+		return -1;
+	} else{
+		return (sizeof(struct can_frame));
 	}
 	return -1;
 }
@@ -234,14 +212,15 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	CanMsgTstamp RxCanTstmpMsg;
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
-	CanRecvTimer.tv_nsec = 3000000;
+	CanRecvTimer.tv_nsec = 1000000;
 	while(CanDrvInst->mCANStatus)
 	{
 		int iRecError = 0;
-		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg, CanDrvInst->uiDefCANRecTimeout)) < 0){
-			//ALOGW(TAG, __FUNCTION__, "CAN Reception timeout");
+		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg)) < 0){
+			//ALOGE(TAG, __FUNCTION__, "Error Receiving CAN messages");
 			;
 		}else {
+			//ALOGD(TAG, __FUNCTION__, "New Message received");
 			//CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan

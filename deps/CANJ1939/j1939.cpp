@@ -57,8 +57,12 @@ unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usP
 
 bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
 {
-	if(getCANStatus() == true)
+	if(getCANStatus() == true) {
+		//in J1939, we should send always Extended Frames
+		TxCanMsg.can_id &= CAN_EFF_MASK;
+		TxCanMsg.can_id |= CAN_EFF_FLAG;
 		return CanSendMsg(TxCanMsg);
+	}
 	else
 		return false;
 }
