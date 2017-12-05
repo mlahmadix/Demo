@@ -25,7 +25,6 @@ TCPServer::~TCPServer()
 void * TCPServer::TcpAcceptCallback(void *context)
 {
 	char MsgRecv[4096]={0};
-	int read_size = -1;
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 	TCPServer * TCPServerInst = static_cast<TCPServer *>(context);
 	while(1)
@@ -37,6 +36,7 @@ void * TCPServer::TcpAcceptCallback(void *context)
 			TCPServerInst->mConnectedStatus = true;
 		else
 			TCPServerInst->mConnectedStatus = false;
+		int read_size = -1;
 		while( (read_size = recv(TCPServerInst->ClientSockfd , MsgRecv , 4096 , 0)) > 0 )
 		{
 			cout << MsgRecv << endl;

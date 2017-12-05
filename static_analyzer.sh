@@ -1,7 +1,7 @@
 #!/bin/sh
 CPPCHECK=$(which cppcheck)
 
-if [ $CPPCHECK = "" ]
+if [ "$CPPCHECK" = "" ]
 then
      echo "cpp check tool is not installed"
      echo "please run:"

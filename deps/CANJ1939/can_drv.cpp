@@ -217,8 +217,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	CanRecvTimer.tv_nsec = 1000000;
 	while(CanDrvInst->mCANStatus)
 	{
-		int iRecError = 0;
-		if((iRecError = CanDrvInst->CanRecvMsg(RxCanMsg)) < 0){
+		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
 			//ALOGE(TAG, __FUNCTION__, "Error Receiving CAN messages");
 			;
 		}else {

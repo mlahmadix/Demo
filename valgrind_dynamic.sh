@@ -2,7 +2,7 @@
 
 valgrind_bin=$(which /usr/bin/valgrind)
 
-if [ $valgrind_bin = "" ]
+if [ "$valgrind_bin" = "" ]
 then
 	echo "valgrind is not installed"
 	echo "please run following command to install it"
@@ -11,7 +11,7 @@ then
 fi
 
 # Should be compiled with Debugging symbols (-g)
-cmd="valgrind --leak-check=full --leak-resolution=high --show-leak-kinds=all -v ./build/exe/HelloWorld"
+cmd="valgrind --leak-check=full --leak-resolution=high --show-leak-kinds=all build/exe/HelloWorld"
 nohup $cmd &
 bg_pid=$!
 
