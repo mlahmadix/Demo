@@ -20,10 +20,10 @@ class CANDrv
 	public:
 		~CANDrv();
 	protected:
-		CANDrv(std::string FifoName, struct can_filter * CANFilters);
-		CANDrv(std::string FifoName, std::string CanInterface, struct can_filter * CANFilters);
-		CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, struct can_filter * CANFilters);
-		CANDrv(std::string FifoName, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags, struct can_filter * CANFilters);
+		CANDrv(std::string FifoName, int proto);
+		CANDrv(std::string FifoName, int proto, std::string CanInterface);
+		CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate);
+		CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags);
 		enum {
 			CeCanDrv_NotInit = 0,
 			CeCanDrv_Init,
@@ -36,16 +36,15 @@ class CANDrv
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 		int CanRecvMsg(struct can_frame &RxCanMsg);
 		bool CanSendMsg(struct can_frame &TxCanMsg);
-		bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size);
+		virtual bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size) = 0;
 		bool getCANStatus();
 		void StopCANDriver();
 		void printCanFrame(struct can_frame TxCanMsg);
 		Fifo * CANFifo;
 		unsigned long long getCANMsgTimestamp();
 	private:
-		bool initCanDevice(std::string CanInfName, struct can_filter * CANFilters);
+		bool initCanDevice(std::string CanInfName);
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
-		#define CANFilterSupported 10
 		bool mCANStatus;
 		int sockCanfd;
 		unsigned long mulModeFlags;
@@ -53,9 +52,10 @@ class CANDrv
 		unsigned long uiDefCANRecTimeout;
 		unsigned int muiCanInfIndex;
 		std::string pucCanInfName;
-		struct can_filter mCANfilters[CANFilterSupported];
+		struct can_filter * mCANfilters;
 		pthread_t Can_Thread;
 		pthread_mutex_t Can_Mutex;
+		int mCanProtocol;
 		unsigned short uwGetCanBaudrate() { return mulBaudrate;}
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}

@@ -78,7 +78,7 @@ static const J1939_eRxDataInfo CstP1939_iRxDataDef[5] =
  {CCVS_PGN,		 ENG_SA,  1, 2,  1, 256,   0 ,    0,    250    ,5000,  &usVehicleSpeed , &J1939DataStats[CeJ1939_VehSpeed_Status]},
  {ENG_TEMP1_PGN, ENG_SA,  0, 1,  1, 1  ,  -40,  -40,    210    ,5000,  &scCoolTemp     , &J1939DataStats[CeJ1939_CoolTemp_Status]},
  {ENG_FLD_PGN,	 ENG_SA,  3, 1,  4, 1  ,   0 ,    0,    1000   ,5000,  &usOilPres      , &J1939DataStats[CeJ1939_OilPress_Status]},
- {ENG_VOL_PGN,	 ENG_SA,  7, 1,  4, 2  ,   0 ,    0,    1000   ,5000,  &usVolLvl      , &J1939DataStats[CeJ1939_VolLevel_Status]},
+ {ENG_VOL_PGN,	 ENG_SA,  7, 1,  4, 2  ,   0 ,    0,    1000   ,5000,  &usVolLvl       , &J1939DataStats[CeJ1939_VolLevel_Status]},
 };
 
 static const stDM_iDTCDataStruct CstP1939_iSuppDtcMsg[5] =
@@ -141,19 +141,10 @@ int main(){
       std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
 
 	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_RightSignOut);
-	  
-	  
-      //Initialize CAN Interface
-		/*struct can_filter* J1939Filters = new can_filter[4];
-		for(unsigned int j = 0; j < 4; j++) {
-			J1939Filters[j].can_id   = ulBuildCanId(CstP1939_iRxDataDef[j].ucSA,
-			                                        CstP1939_iRxDataDef[j].usPGN);
-			J1939Filters[j].can_mask = CAN_EFF_MASK; //J1939 use CAN2.0B only extended frames
-		}*/
       
       std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("CANFIFO-VCan0", "vcan0", CstP1939_iRxDataDef, 
-      sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0]), CstP1939_iSuppDtcMsg, sizeof(CstP1939_iSuppDtcMsg)/sizeof(CstP1939_iSuppDtcMsg[0])));
-      
+      sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0])));
+
       //Example of Extended CAN Message sending
       TxCanMsg.can_id = ulBuildCanId(0x00, 0xFEF1);
       TxCanMsg.can_dlc = 8;

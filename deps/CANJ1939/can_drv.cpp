@@ -11,18 +11,17 @@ using namespace std::chrono;
 
 #define TAG "CANDrv"
 
-#define CAN_J1939 5
-
-CANDrv::CANDrv(string FifoName, struct can_filter * CANFilters):
+CANDrv::CANDrv(string FifoName, int proto):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(CANDefaultTimeoutBase)
+uiDefCANRecTimeout(CANDefaultTimeoutBase),
+mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice("vcan0", CANFilters)) {
+	if(!initCanDevice("vcan0")) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
@@ -35,16 +34,17 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase)
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface, struct can_filter * CANFilters):
+CANDrv::CANDrv(string FifoName, int proto, string CanInterface):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(CANDefaultTimeoutBase)
+uiDefCANRecTimeout(CANDefaultTimeoutBase),
+mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface, CANFilters)) {
+	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
@@ -57,16 +57,17 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase)
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, struct can_filter * CANFilters):
+CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
 mulBaudrate(baudrate),
-uiDefCANRecTimeout(CANDefaultTimeoutBase)
+uiDefCANRecTimeout(CANDefaultTimeoutBase),
+mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface, CANFilters)) {
+	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
@@ -79,16 +80,17 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase)
 	}
 }
 
-CANDrv::CANDrv(string FifoName, string CanInterface, unsigned long baudrate, unsigned long ModeFlags, struct can_filter * CANFilters):
+CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
 mulBaudrate(baudrate),
-uiDefCANRecTimeout(CANDefaultTimeoutBase)
+uiDefCANRecTimeout(CANDefaultTimeoutBase),
+mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface, CANFilters)) {
+	if(!initCanDevice(CanInterface)) {
 		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
 		setCANStatus(false);
 	}else {
@@ -117,7 +119,7 @@ CANDrv::~CANDrv()
 	iCANDrvInit = CeCanDrv_NotInit;
 }
 
-bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
+bool CANDrv::initCanDevice(string CanInfName)
 {
 	ALOGD(TAG, __FUNCTION__, "Init Can Interface %s", CanInfName.c_str());
 	struct ifreq ifr;
@@ -125,7 +127,7 @@ bool CANDrv::initCanDevice(string CanInfName, struct can_filter * CANFilters)
 	memset(&ifr, 0x0, sizeof(ifr));
 	memset(&addr, 0x0, sizeof(addr));
 	/* open CAN_RAW socket */
-	sockCanfd = socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
+	sockCanfd = socket(PF_CAN, SOCK_DGRAM, mCanProtocol);
 	if(sockCanfd <=0) {
 		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
 		return false;
@@ -265,7 +267,7 @@ void CANDrv::StopCANDriver()
 	setCANStatus(false);
 }
 
-bool CANDrv::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
+/*bool CANDrv::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
 {
     if(setsockopt(sockCanfd, SOL_CAN_RAW, CAN_RAW_FILTER, &AppliedFilters, sizeof(struct can_filter)*size) == 0){
 		return true;
@@ -273,7 +275,7 @@ bool CANDrv::setCanFilters(struct can_filter * AppliedFilters, unsigned int size
 		ALOGD(TAG, __FUNCTION__, "Fail To apply CAN Filters");
 		return false;
 	}
-}
+}*/
 void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 {
 	string BufferData;

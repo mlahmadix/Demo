@@ -8,9 +8,22 @@
 using namespace std;
 using namespace std::chrono;
 
+J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
+CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+mEffectiveRxMsgNum(cstJ1939_Num_MsgRX),//Take Default Max value
+mEffectiveDtcSuppNum(0)
+{
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	if(getCANStatus()) {
+		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
+		InstallJ1939_RXParsers(J1939_RxDataParams, size);
+		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
+	}
+}
+
 J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
                        const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize):
-CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), NULL),
+CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
@@ -21,21 +34,6 @@ mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
 	}
 }
-
-J1939Layer::J1939Layer(string CanFifoName, string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
-                       const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize, struct can_filter * J1939Filters):
-CANDrv(CanFifoName, CanInfName, static_cast<unsigned long>(J1939_BaudRate), J1939Filters),
-mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
-{
-	ALOGD(TAG, __FUNCTION__, "CTOR");
-	if(getCANStatus()) {
-		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
-		InstallJ1939_RXParsers(J1939_RxDataParams, size);
-		J1939_InitDiagMachine(J1939_DtcDiagStruct, Dtcsize);
-		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
-	}
-}
-
 
 J1939Layer::~J1939Layer()
 {
@@ -586,4 +584,9 @@ void J1939Layer::J1939_ExitDiagMachine()
 		mJ1939_DmDTC_TimeoutValue = cstDTC_Def_Comm_Timeout;
 		mJ1939_DmDTC_MPValidData = false;
 	}
+}
+
+bool J1939Layer::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
+{
+	return true;
 }
