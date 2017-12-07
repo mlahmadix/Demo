@@ -12,6 +12,7 @@ using namespace std::chrono;
 #define TAG "CANDrv"
 
 CANDrv::CANDrv(string FifoName, int proto):
+mCanDriverStatus(false),
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -20,21 +21,25 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase),
 mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice("vcan0")) {
-		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-		setCANStatus(false);
-	}else {
-		iCANDrvInit = CeCanDrv_Init;
-		setCANStatus(true);
-		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	mCanDriverStatus = CheckKernelModule();
+	if(mCanDriverStatus) {
+		if(!initCanDevice("vcan0")) {
+			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+			setCANStatus(false);
+		}else {
+			iCANDrvInit = CeCanDrv_Init;
+			setCANStatus(true);
+			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
 #endif
+		}
 	}
 }
 
 CANDrv::CANDrv(string FifoName, int proto, string CanInterface):
+mCanDriverStatus(false),
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -43,21 +48,25 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase),
 mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
-		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-		setCANStatus(false);
-	}else {
-		iCANDrvInit = CeCanDrv_Init;
-		setCANStatus(true);
-		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	mCanDriverStatus = CheckKernelModule();
+	if(mCanDriverStatus) {
+		if(!initCanDevice(CanInterface)) {
+			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+			setCANStatus(false);
+		}else {
+			iCANDrvInit = CeCanDrv_Init;
+			setCANStatus(true);
+			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
 #endif
+		}
 	}
 }
 
 CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate):
+mCanDriverStatus(false),
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(0),
@@ -66,21 +75,25 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase),
 mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
-		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-		setCANStatus(false);
-	}else {
-		iCANDrvInit = CeCanDrv_Init;
-		setCANStatus(true);
-		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	mCanDriverStatus = CheckKernelModule();
+	if(mCanDriverStatus) {
+		if(!initCanDevice(CanInterface)) {
+			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+			setCANStatus(false);
+		}else {
+			iCANDrvInit = CeCanDrv_Init;
+			setCANStatus(true);
+			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
 #endif
+		}
 	}
 }
 
 CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
+mCanDriverStatus(false),
 mCANStatus(false),
 sockCanfd(-1),
 mulModeFlags(ModeFlags),
@@ -89,17 +102,20 @@ uiDefCANRecTimeout(CANDefaultTimeoutBase),
 mCanProtocol(proto)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-	if(!initCanDevice(CanInterface)) {
-		ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-		setCANStatus(false);
-	}else {
-		iCANDrvInit = CeCanDrv_Init;
-		setCANStatus(true);
-		pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+	mCanDriverStatus = CheckKernelModule();
+	if(mCanDriverStatus) {
+		if(!initCanDevice(CanInterface)) {
+			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+			setCANStatus(false);
+		}else {
+			iCANDrvInit = CeCanDrv_Init;
+			setCANStatus(true);
+			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-		CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
 #endif
+		}
 	}
 }
 
@@ -107,16 +123,20 @@ CANDrv::~CANDrv()
 {
 	ALOGD(TAG, __FUNCTION__, "DTOR");
 	//shutdown associated CAN socket
-	close(sockCanfd);
-	sockCanfd = -1;
-	//join Reception Thread
-	pthread_join(Can_Thread, NULL);
-	//delete CAN Reception FIFO
-	delete CANFifo;
+	if(mCanDriverStatus && mCANStatus) {
+		if(sockCanfd > 0) {
+			close(sockCanfd);
+			sockCanfd = -1;
+		}
+		//join Reception Thread
+		pthread_join(Can_Thread, NULL);
+		//delete CAN Reception FIFO
+		delete CANFifo;
 #ifdef CANDATALOGGER
-	delete CanDataLogger;
+		delete CanDataLogger;
 #endif
-	iCANDrvInit = CeCanDrv_NotInit;
+		iCANDrvInit = CeCanDrv_NotInit;
+	}
 }
 
 bool CANDrv::initCanDevice(string CanInfName)
@@ -221,8 +241,8 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//ALOGE(TAG, __FUNCTION__, "Error Receiving CAN messages");
 			;
 		}else {
-			//ALOGD(TAG, __FUNCTION__, "New Message received");
-			//CanDrvInst->printCanFrame(RxCanMsg);
+			ALOGD(TAG, __FUNCTION__, "New Message received");
+			CanDrvInst->printCanFrame(RxCanMsg);
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
@@ -320,5 +340,19 @@ void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 unsigned long long CANDrv::getCANMsgTimestamp()
 {
 	return duration_cast<std::chrono::milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
+bool CANDrv::CheckKernelModule()
+{
+	FILE *fd = popen("lsmod |grep -niw can", "r");//w option is for exact word matching
+	char buf[255]={0};
+	bool status = false;
+	if (fread (buf, 1, sizeof (buf), fd) > 0){ //can core kernel module is loaded
+		status = true;
+	} else {//can core is not loaded or there are issues on loading it
+		ALOGE(TAG, __FUNCTION__, "CAN Core Kernel module not loaded");
+	}
+	fclose(fd);
+	return status;
 }
 

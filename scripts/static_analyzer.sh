@@ -8,6 +8,6 @@ then
      echo "sudo apt-get install cppcheck"
      exit 1
  else
-	$CPPCHECK --enable=all --inconclusive .
+	$CPPCHECK --enable=all --inconclusive ../
 fi
 exit 0

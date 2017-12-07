@@ -32,6 +32,7 @@ class CANDrv
 			struct can_frame RxCanMsg;
 			unsigned long long ulMsgTstamp;
 		};
+		bool mCanDriverStatus;
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 		int CanRecvMsg(struct can_frame &RxCanMsg);
@@ -43,6 +44,7 @@ class CANDrv
 		Fifo * CANFifo;
 		unsigned long long getCANMsgTimestamp();
 	private:
+	    virtual bool CheckKernelModule();
 		bool initCanDevice(std::string CanInfName);
 		#define CANFIFODepth 1000 //example of 1CAN message per 1ms = 1000messages/s
 		bool mCANStatus;

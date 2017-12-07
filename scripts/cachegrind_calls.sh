@@ -10,7 +10,7 @@ then
 fi
 
 # Should be compiled with Debugging symbols (-g)
-cmd="valgrind --tool=callgrind --demangle=yes --callgrind-out-file=hello_world.callgrind ./build/exe/HelloWorld"
+cmd="valgrind --tool=callgrind --demangle=yes --callgrind-out-file=hello_world.callgrind build/exe/HelloWorld"
 nohup $cmd &
 bg_pid=$!
 

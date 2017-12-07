@@ -10,20 +10,29 @@ using namespace std::chrono;
 
 J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
 CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX),//Take Default Max value
 mEffectiveDtcSuppNum(0)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
-	if(getCANStatus()) {
-		ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
-		InstallJ1939_RXParsers(J1939_RxDataParams, size);
-		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
+	if(CheckKernelModule()) {
+		if(getCANStatus()) {
+			ALOGD(TAG, __FUNCTION__, "J1939 Initialized Successfully");
+			InstallJ1939_RXParsers(J1939_RxDataParams, size);
+			pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
+			mJ1939_Init = true;
+		}else {
+			ALOGE(TAG, __FUNCTION__, "Fail to initialize CAN/SocketCAN Core");
+		}
+	}else {
+			ALOGE(TAG, __FUNCTION__, "Fail to Load and Initialize J1939 Kernel Module ");
 	}
 }
 
 J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
                        const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize):
 CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
@@ -32,6 +41,7 @@ mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 		InstallJ1939_RXParsers(J1939_RxDataParams, size);
 		J1939_InitDiagMachine(J1939_DtcDiagStruct, Dtcsize);
 		pthread_create(&J1939Thread, NULL, pvthJ1939ParseFrames_Exe, this);
+		mJ1939_Init = true;
 	}
 }
 
@@ -39,9 +49,12 @@ J1939Layer::~J1939Layer()
 {
 	ALOGD(TAG, __FUNCTION__, "DTOR");
 	//join Parsing Thread
-	pthread_join(J1939Thread, NULL);
-	RemoveJ1939_RXParsers();
-	J1939_ExitDiagMachine();
+	if(mJ1939_Init) {
+		pthread_join(J1939Thread, NULL);
+		RemoveJ1939_RXParsers();
+		J1939_ExitDiagMachine();
+		mJ1939_Init = false;
+	}
 }
 
 unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usPGN)
@@ -55,7 +68,7 @@ unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usP
 
 bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
 {
-	if(getCANStatus() == true) {
+	if(mJ1939_Init && getCANStatus()) {
 		//in J1939, we should send always Extended Frames
 		TxCanMsg.can_id &= CAN_EFF_MASK;
 		TxCanMsg.can_id |= CAN_EFF_FLAG;
@@ -67,7 +80,8 @@ bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
 
 void J1939Layer::ForceStopCAN()
 {
-	StopCANDriver();
+	if(mJ1939_Init && getCANStatus())
+		StopCANDriver();
 }
 
 
@@ -589,4 +603,18 @@ void J1939Layer::J1939_ExitDiagMachine()
 bool J1939Layer::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
 {
 	return true;
+}
+
+bool J1939Layer::CheckKernelModule()
+{
+	FILE *fd = popen("lsmod |grep -niw can_j1939", "r");//w option is for exact word matching
+	char buf[255]={0};
+	bool status = false;
+	if (fread (buf, 1, sizeof (buf), fd) > 0){ //CAN J193 kernel module is loaded
+		status = true;
+	} else {//CAN J1939 module is not loaded or there are issues on loading it
+		ALOGE(TAG, __FUNCTION__, "CAN J1939 Kernel module not loaded");
+	}
+	fclose(fd);
+	return status;
 }

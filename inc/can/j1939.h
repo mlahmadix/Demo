@@ -119,6 +119,7 @@ class J1939Layer: public CANDrv
 		bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size);
 	
 	private:
+		bool mJ1939_Init;
 		pthread_t J1939Thread;
 		static void * pvthJ1939ParseFrames_Exe (void* context);
 		J1939_eRxDataInfo * mJ1939_RxDataDef;
@@ -169,6 +170,7 @@ class J1939Layer: public CANDrv
 		bool j1939_CheckDTCLamps(unsigned char ucLamps, unsigned char ucLampsDTCMask);
 		bool j1939_CheckFMIMatch(char * pucDiagBuffer, unsigned long ulLength, unsigned char ucFMI);
 		bool j1939_CheckSPNFMIMatch(char * pucDiagBuffer, unsigned long ulLength, unsigned long ulSPN, unsigned char ucFMI);
+		virtual bool CheckKernelModule();
 };
 
 #endif
