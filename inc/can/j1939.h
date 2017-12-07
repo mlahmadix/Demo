@@ -3,8 +3,6 @@
 
 #include "can/can_drv.h"
 
-#define CAN_J1939_PROTO 5
-
 #define J1939_BaudRate 250000
 #define cstJ1939_Num_MsgRX 100
 #define cstDTC_Num_SupportedDTC 255
@@ -113,7 +111,7 @@ class J1939Layer: public CANDrv
 		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
 				   const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize);
 		~J1939Layer();
-		bool SendJ1939Msg(struct can_frame &TxCanMsg);
+		bool SendJ1939Msg(struct can_frame * TxCanMsg);
 		void ForceStopCAN();
 		void UpdateDTCStatuses(char * ucDM_DTC_Data);
 		bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size);

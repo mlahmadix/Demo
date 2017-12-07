@@ -12,18 +12,20 @@
 #include <unistd.h>
 #include "fifo/lib_fifo.h"
 #include "filelog/lib_filelog.h"
+#include "can/isotp.h"
 
 #define CANDefaultTimeoutBase 5000 //5s for HeatBet messages
+#define CAN_J1939_PROTO 5
+#define ISOTP_BUFSIZE 5000  //MAX ISOTP Data Size
 
 class CANDrv
 {
 	public:
 		~CANDrv();
 	protected:
-		CANDrv(std::string FifoName, int proto);
-		CANDrv(std::string FifoName, int proto, std::string CanInterface);
-		CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate);
 		CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags);
+		CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags, unsigned long ulRxID,
+		       unsigned long ulTxID);
 		enum {
 			CeCanDrv_NotInit = 0,
 			CeCanDrv_Init,
@@ -36,7 +38,7 @@ class CANDrv
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 		int CanRecvMsg(struct can_frame &RxCanMsg);
-		bool CanSendMsg(struct can_frame &TxCanMsg);
+		bool CanSendMsg(const void * Buf, unsigned long ulLen);
 		virtual bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size) = 0;
 		bool getCANStatus();
 		void StopCANDriver();
@@ -54,10 +56,11 @@ class CANDrv
 		unsigned long uiDefCANRecTimeout;
 		unsigned int muiCanInfIndex;
 		std::string pucCanInfName;
-		struct can_filter * mCANfilters;
 		pthread_t Can_Thread;
 		pthread_mutex_t Can_Mutex;
 		int mCanProtocol;
+		unsigned long mDiagRXID;
+		unsigned long mDiagTXID;
 		unsigned short uwGetCanBaudrate() { return mulBaudrate;}
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}
@@ -67,7 +70,7 @@ class CANDrv
 			CeCanDir_TX = 0,
 			CeCanDir_RX
 		}; 
-		void LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir);
+		void LogCanMsgToFile(const void * Msg, unsigned long ulLen, CeCanMsgDir MsgDir);
 		
 
 };

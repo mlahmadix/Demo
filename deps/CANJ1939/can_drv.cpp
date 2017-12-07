@@ -11,87 +11,6 @@ using namespace std::chrono;
 
 #define TAG "CANDrv"
 
-CANDrv::CANDrv(string FifoName, int proto):
-mCanDriverStatus(false),
-mCANStatus(false),
-sockCanfd(-1),
-mulModeFlags(0),
-mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(CANDefaultTimeoutBase),
-mCanProtocol(proto)
-{
-	ALOGD(TAG, __FUNCTION__, "CTOR");
-	mCanDriverStatus = CheckKernelModule();
-	if(mCanDriverStatus) {
-		if(!initCanDevice("vcan0")) {
-			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-			setCANStatus(false);
-		}else {
-			iCANDrvInit = CeCanDrv_Init;
-			setCANStatus(true);
-			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
-#ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
-#endif
-		}
-	}
-}
-
-CANDrv::CANDrv(string FifoName, int proto, string CanInterface):
-mCanDriverStatus(false),
-mCANStatus(false),
-sockCanfd(-1),
-mulModeFlags(0),
-mulBaudrate(static_cast<unsigned long>(250000)),
-uiDefCANRecTimeout(CANDefaultTimeoutBase),
-mCanProtocol(proto)
-{
-	ALOGD(TAG, __FUNCTION__, "CTOR");
-	mCanDriverStatus = CheckKernelModule();
-	if(mCanDriverStatus) {
-		if(!initCanDevice(CanInterface)) {
-			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-			setCANStatus(false);
-		}else {
-			iCANDrvInit = CeCanDrv_Init;
-			setCANStatus(true);
-			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
-#ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
-#endif
-		}
-	}
-}
-
-CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate):
-mCanDriverStatus(false),
-mCANStatus(false),
-sockCanfd(-1),
-mulModeFlags(0),
-mulBaudrate(baudrate),
-uiDefCANRecTimeout(CANDefaultTimeoutBase),
-mCanProtocol(proto)
-{
-	ALOGD(TAG, __FUNCTION__, "CTOR");
-	mCanDriverStatus = CheckKernelModule();
-	if(mCanDriverStatus) {
-		if(!initCanDevice(CanInterface)) {
-			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
-			setCANStatus(false);
-		}else {
-			iCANDrvInit = CeCanDrv_Init;
-			setCANStatus(true);
-			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
-#ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
-#endif
-		}
-	}
-}
-
 CANDrv::CANDrv(string FifoName, int proto, string CanInterface, unsigned long baudrate, unsigned long ModeFlags):
 mCanDriverStatus(false),
 mCANStatus(false),
@@ -99,7 +18,9 @@ sockCanfd(-1),
 mulModeFlags(ModeFlags),
 mulBaudrate(baudrate),
 uiDefCANRecTimeout(CANDefaultTimeoutBase),
-mCanProtocol(proto)
+mCanProtocol(proto),
+mDiagRXID(0),
+mDiagTXID(0)
 {
 	ALOGD(TAG, __FUNCTION__, "CTOR");
 	mCanDriverStatus = CheckKernelModule();
@@ -113,7 +34,37 @@ mCanProtocol(proto)
 			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log");
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log", false);
+#endif
+		}
+	}
+}
+
+CANDrv::CANDrv(std::string FifoName, int proto, std::string CanInterface, unsigned long baudrate, unsigned long ModeFlags, unsigned long ulRxID,
+	   unsigned long ulTxID):
+mCanDriverStatus(false),
+mCANStatus(false),
+sockCanfd(-1),
+mulModeFlags(ModeFlags),
+mulBaudrate(baudrate),
+uiDefCANRecTimeout(0),
+mCanProtocol(proto),
+mDiagRXID(ulRxID),
+mDiagTXID(ulTxID)
+{
+	ALOGD(TAG, __FUNCTION__, "CTOR");
+	mCanDriverStatus = CheckKernelModule();
+	if(mCanDriverStatus) {
+		if(!initCanDevice(CanInterface)) {
+			ALOGE(TAG, __FUNCTION__, "Fail to init CAN Interface");
+			setCANStatus(false);
+		}else {
+			iCANDrvInit = CeCanDrv_Init;
+			setCANStatus(true);
+			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+#ifdef CANDATALOGGER
+			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log", false);
 #endif
 		}
 	}
@@ -149,7 +100,7 @@ bool CANDrv::initCanDevice(string CanInfName)
 	/* open CAN_RAW socket */
 	sockCanfd = socket(PF_CAN, SOCK_DGRAM, mCanProtocol);
 	if(sockCanfd <=0) {
-		ALOGE(TAG, __FUNCTION__, "Fail to create RAW Socket");
+		ALOGE(TAG, __FUNCTION__, "Fail to create %d Socket", mCanProtocol);
 		return false;
 	}
 	
@@ -162,6 +113,12 @@ bool CANDrv::initCanDevice(string CanInfName)
 	/* setup address for bind */
 	addr.can_ifindex = ifr.ifr_ifindex;
 	addr.can_family  = AF_CAN;
+	
+	/*If ISOTP Protocol Define RX/TX Ids */
+	if(mCanProtocol == CAN_ISOTP) {
+		addr.can_addr.tp.tx_id = mDiagRXID;
+		addr.can_addr.tp.rx_id = mDiagTXID;
+	}
 	
 	/* Set CAN Socket to Non-Blocking
 	 * So we can interrupt the read routing */
@@ -179,7 +136,7 @@ bool CANDrv::initCanDevice(string CanInfName)
 		return false;
 	}
 	
-	/* bind socket to the can0 interface */
+	/* bind socket to the CAN interface */
 	bind(sockCanfd, (struct sockaddr *)&addr, sizeof(addr));
 	
 	memset(&ifr, 0, sizeof(ifr));
@@ -212,14 +169,19 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 	return -1;
 }
 
-bool CANDrv::CanSendMsg(struct can_frame &TxCanMsg)
+bool CANDrv::CanSendMsg(const void * Buf, unsigned long ulLen)
 {
+	if((mCanProtocol == CAN_J1939_PROTO) || (mCanProtocol == CAN_RAW))
+		ulLen = sizeof(struct can_frame);
+	else {
+		if(ulLen > ISOTP_BUFSIZE)
+			ulLen = ISOTP_BUFSIZE;
+	}
 #ifdef CANDATALOGGER
-	LogCanMsgToFile(TxCanMsg, CeCanDir_TX);
+	LogCanMsgToFile(Buf, ulLen, CeCanDir_TX);
 #endif
-	if(write(sockCanfd, &TxCanMsg, sizeof(TxCanMsg)) == sizeof(TxCanMsg)){
+	if(write(sockCanfd, Buf, ulLen) >= 0){
 		ALOGD(TAG, __FUNCTION__, "CAN Msg sent successfully");
-		printCanFrame(TxCanMsg);
 		return true;
 	}else{
 		ALOGE(TAG, __FUNCTION__, "Fail to send CAN Msg");
@@ -247,7 +209,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
 #ifdef CANDATALOGGER
-			CanDrvInst->LogCanMsgToFile(RxCanMsg, CeCanDir_RX);
+			CanDrvInst->LogCanMsgToFile((void*)&RxCanMsg, sizeof(struct can_frame), CeCanDir_RX);
 #endif
 			RxCanTstmpMsg.RxCanMsg = RxCanMsg;
 			RxCanTstmpMsg.ulMsgTstamp = CanDrvInst->getCANMsgTimestamp();
@@ -286,16 +248,7 @@ void CANDrv::StopCANDriver()
 	setCANStatus(false);
 }
 
-/*bool CANDrv::setCanFilters(struct can_filter * AppliedFilters, unsigned int size)
-{
-    if(setsockopt(sockCanfd, SOL_CAN_RAW, CAN_RAW_FILTER, &AppliedFilters, sizeof(struct can_filter)*size) == 0){
-		return true;
-	}else {
-		ALOGD(TAG, __FUNCTION__, "Fail To apply CAN Filters");
-		return false;
-	}
-}*/
-void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
+void CANDrv::LogCanMsgToFile(const void * Msg, unsigned long ulLen, CeCanMsgDir MsgDir)
 {
 	string BufferData;
 	std::stringstream CanString;
@@ -308,32 +261,51 @@ void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 	}
 	CanString << "\t";
 	
-	if((CanMsg.can_id & CAN_SFF_MASK)== CanMsg.can_id) { //CAN Standard Frame <= 0x7FF
-		CanString << "STD";
-	}else if (((CanMsg.can_id & CAN_EFF_MASK) == CanMsg.can_id) &&
-			  ((CanMsg.can_id & CAN_SFF_MASK) != CanMsg.can_id)){ //CAN Extended Frame <= 0x1FFFFFFF & > 0x7FF
-		CanString << "EXT";
-	}else if((CanMsg.can_id & CAN_RTR_FLAG) == CanMsg.can_id) {
-		CanString << "RTR"; //CAN Remote Transmission Request
-	}else { //CAN Error Frame
-		CanString << "ERR";
+	if(mCanProtocol == CAN_J1939_PROTO) {
+		CanString << "J1939";
+	}else if(mCanProtocol == CAN_ISOTP) {
+		CanString << "ISOTP";
+	}else {
+		CanString << "RAW";
 	}
 	CanString << "\t";
-	
-	
-	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
-	          << std::hex << CanMsg.can_id;
-	CanString << "\t";
-	CanString << (int)CanMsg.can_dlc;
-	CanString << "\t";
-	for(int j=0; j < (CanMsg.can_dlc-1); j++) {
+
+	if(mCanProtocol == CAN_ISOTP) {
+		;
+		
+	} else { //All protocols other than ISOTP
+		struct can_frame CanMsg;
+		memcpy((void*)&CanMsg, Msg, sizeof(struct can_frame));
+		if((CanMsg.can_id & CAN_SFF_MASK) == CanMsg.can_id) { //CAN Standard Frame <= 0x7FF
+			CanString << "STD";
+		} else if ((CanMsg.can_id & CAN_EFF_FLAG) == CAN_EFF_FLAG){ //CAN Extended Frame <= 0x1FFFFFFF & > 0x7FF
+			CanString << "EXT";
+		}
+		CanString << "\t";
+		if((CanMsg.can_id & CAN_RTR_FLAG) == CAN_RTR_FLAG) {
+			CanString << "RTR"; //CAN Remote Transmission Request
+		}
+		CanString << "\t";
+		if ((CanMsg.can_id & CAN_ERR_FLAG) == CAN_ERR_FLAG){ //CAN Error Frame
+			CanString << "ERR";
+		}
+		CanString << "\t";
+		
+		
+		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
+				  << std::hex << CanMsg.can_id;
+		CanString << "\t";
+		CanString << (int)CanMsg.can_dlc;
+		CanString << "\t";
+		for(int j=0; j < (CanMsg.can_dlc-1); j++) {
+			CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+					  << std::hex << (int)CanMsg.data[j];
+			CanString << " - ";
+		}
 		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
-		          << std::hex << (int)CanMsg.data[j];
-		CanString << " - ";
+				  << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
+		BufferData = CanString.str();
 	}
-	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
-		      << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
-	BufferData = CanString.str();
 	CanDataLogger->WriteLogData(BufferData, true);
 }
 
@@ -345,7 +317,7 @@ unsigned long long CANDrv::getCANMsgTimestamp()
 bool CANDrv::CheckKernelModule()
 {
 	FILE *fd = popen("lsmod |grep -niw can", "r");//w option is for exact word matching
-	char buf[255]={0};
+	char buf[60]={0};
 	bool status = false;
 	if (fread (buf, 1, sizeof (buf), fd) > 0){ //can core kernel module is loaded
 		status = true;

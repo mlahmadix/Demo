@@ -9,7 +9,7 @@ using namespace std;
 using namespace std::chrono;
 
 J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
-CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
 mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX),//Take Default Max value
 mEffectiveDtcSuppNum(0)
@@ -31,7 +31,7 @@ mEffectiveDtcSuppNum(0)
 
 J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
                        const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize):
-CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate)),
+CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
 mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 {
@@ -66,13 +66,12 @@ unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usP
 }
 
 
-bool J1939Layer::SendJ1939Msg(struct can_frame &TxCanMsg)
+bool J1939Layer::SendJ1939Msg(struct can_frame * TxCanMsg)
 {
 	if(mJ1939_Init && getCANStatus()) {
 		//in J1939, we should send always Extended Frames
-		TxCanMsg.can_id &= CAN_EFF_MASK;
-		TxCanMsg.can_id |= CAN_EFF_FLAG;
-		return CanSendMsg(TxCanMsg);
+		TxCanMsg->can_id |= CAN_EFF_FLAG;
+		return CanSendMsg((void*)TxCanMsg, TxCanMsg->can_dlc);
 	}
 	else
 		return false;
@@ -608,9 +607,9 @@ bool J1939Layer::setCanFilters(struct can_filter * AppliedFilters, unsigned int 
 bool J1939Layer::CheckKernelModule()
 {
 	FILE *fd = popen("lsmod |grep -niw can_j1939", "r");//w option is for exact word matching
-	char buf[255]={0};
+	char buf[60]={0};
 	bool status = false;
-	if (fread (buf, 1, sizeof (buf), fd) > 0){ //CAN J193 kernel module is loaded
+	if (fread (buf, 1, sizeof (buf), fd) > 0){ //CAN J1939 kernel module is loaded
 		status = true;
 	} else {//CAN J1939 module is not loaded or there are issues on loading it
 		ALOGE(TAG, __FUNCTION__, "CAN J1939 Kernel module not loaded");
