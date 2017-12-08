@@ -140,9 +140,9 @@ int main(){
       std::shared_ptr<InOutApp> InOutBank1(new InOutApp());
 
 	  InOutBank1->SetOutputOn(InOutBank1->CeEnum_RightSignOut);
-	  std::shared_ptr<kwp2k> kwp2kApp(new kwp2k("Kwp2k-Fifo", "vcan0")); 
+	  std::shared_ptr<kwp2k> kwp2kApp(new kwp2k("vcan0")); 
       
-      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("J1939-Fifo", "vcan0", CstP1939_iRxDataDef, 
+      std::shared_ptr<J1939Layer> J1939LayerApp(new J1939Layer("vcan0", CstP1939_iRxDataDef, 
       sizeof(CstP1939_iRxDataDef)/sizeof(CstP1939_iRxDataDef[0])));
 
       //Example of Extended CAN Message sending
@@ -151,7 +151,7 @@ int main(){
       TxCanMsg.can_dlc = 8;
       for(int j = 0; j < TxCanMsg.can_dlc; j++)
     	  TxCanMsg.data[j] = 0x30 + j;
-      J1939LayerApp->SendJ1939Msg(&TxCanMsg);
+      J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
       MainDataDisplayTimer.tv_sec = 0;
 	  MainDataDisplayTimer.tv_nsec = 300000000;
@@ -162,7 +162,7 @@ int main(){
       TxCanMsg.can_dlc = 8;
       for(int k = 0; k < TxCanMsg.can_dlc; k++)
     	  TxCanMsg.data[k] = 0x30 + k;
-      J1939LayerApp->SendJ1939Msg(&TxCanMsg);
+      J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
       std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/tty0", 115200));
       

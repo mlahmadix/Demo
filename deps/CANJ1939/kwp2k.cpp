@@ -5,8 +5,8 @@
 
 #define TAG "KWP2k"
 
-kwp2k::kwp2k(std::string CanFifoName, std::string CanInfName):
-CANDrv(CanFifoName, CAN_ISOTP, CanInfName, static_cast<unsigned long>(500000), 0,
+kwp2k::kwp2k(std::string CanInfName):
+CANDrv(kwp2k_FifoName, CAN_ISOTP, CanInfName, static_cast<unsigned long>(500000), 0,
        static_cast<unsigned long>(ISOTP_ECU_ID), static_cast<unsigned long>(ISOTP_TOOL_ID)),
 mkwp2k_Init(false)
 {
@@ -28,17 +28,17 @@ kwp2k::~kwp2k()
 }
 bool kwp2k::Sendkwp2kFrame(unsigned char * Data, unsigned long ulLen)
 {
-	return CanSendMsg((void*)Data, ulLen);
+	return CanSendMsg(Data, ulLen);
 }
 
 void * kwp2k::pvthKwp2kParseFrames_Exe (void* context)
 {
 	kwp2k * kwp2kInst = static_cast<kwp2k *>(context);
 	struct timespec Kwp2kBaseTimer;
-	Kwp2kBaseTimer.tv_sec = 1;
+	Kwp2kBaseTimer.tv_sec = 5;
 	Kwp2kBaseTimer.tv_nsec = 0;//1s for test Thread scheduling
 	while(kwp2kInst->getCANStatus()) {
-		ALOGE(TAG, __FUNCTION__, "CAN ISOTP Scheduling Thread");
+		//ALOGE(TAG, __FUNCTION__, "CAN ISOTP Scheduling Thread");
 		nanosleep(&Kwp2kBaseTimer, NULL);
 	}
 	return NULL;

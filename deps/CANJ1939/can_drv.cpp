@@ -34,7 +34,7 @@ mDiagTXID(0)
 			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
 			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log", false);
+			CanDataLogger = new DataFileLogger(FifoName, FifoName+".log", false);
 #endif
 		}
 	}
@@ -62,9 +62,9 @@ mDiagTXID(ulTxID)
 			iCANDrvInit = CeCanDrv_Init;
 			setCANStatus(true);
 			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
+			pthread_create(&Can_Thread, NULL, pvthIsotpReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
-			CanDataLogger = new DataFileLogger("CanDataLogger", "CanData.log", false);
+			CanDataLogger = new DataFileLogger(FifoName, FifoName+".log", false);
 #endif
 		}
 	}
@@ -159,6 +159,11 @@ bool CANDrv::initCanDevice(string CanInfName)
 	return true;
 }
 
+int CANDrv::CanRecvMsg(unsigned char * DataBuff)
+{
+	return read(sockCanfd, DataBuff, ISOTP_BUFSIZE);
+}
+
 int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 {
 	if(read(sockCanfd, &RxCanMsg, sizeof(struct can_frame)) < 0) {
@@ -169,14 +174,24 @@ int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
 	return -1;
 }
 
-bool CANDrv::CanSendMsg(const void * Buf, unsigned long ulLen)
+bool CANDrv::CanSendMsg(struct can_frame TxCanMsg)
 {
-	if((mCanProtocol == CAN_J1939_PROTO) || (mCanProtocol == CAN_RAW))
-		ulLen = sizeof(struct can_frame);
-	else {
-		if(ulLen > ISOTP_BUFSIZE)
-			ulLen = ISOTP_BUFSIZE;
+#ifdef CANDATALOGGER
+	LogCanMsgToFile(TxCanMsg, CeCanDir_TX);
+#endif
+	if(write(sockCanfd, (void*)&TxCanMsg, sizeof(struct can_frame)) >= 0){
+		ALOGD(TAG, __FUNCTION__, "CAN Msg sent successfully");
+		return true;
+	}else{
+		ALOGE(TAG, __FUNCTION__, "Fail to send CAN Msg");
+		return false;
 	}
+}
+
+bool CANDrv::CanSendMsg(const unsigned char * Buf, unsigned long ulLen)
+{
+	if(ulLen > ISOTP_BUFSIZE)
+		ulLen = ISOTP_BUFSIZE;
 #ifdef CANDATALOGGER
 	LogCanMsgToFile(Buf, ulLen, CeCanDir_TX);
 #endif
@@ -189,6 +204,40 @@ bool CANDrv::CanSendMsg(const void * Buf, unsigned long ulLen)
 	}
 }
 
+//ISOTP RX Handler Routine
+void * CANDrv::pvthIsotpReadRoutine_Exe (void* context)
+{
+	CANDrv * CanDrvInst = static_cast<CANDrv *>(context);
+	struct timespec CanRecvTimer;
+	CanRecvTimer.tv_sec = 0;
+	CanRecvTimer.tv_nsec = 1000000;
+	unsigned char PDUData[ISOTP_BUFSIZE]={0};
+	while(CanDrvInst->mCANStatus)
+	{
+		int nRecvBytes = CanDrvInst->CanRecvMsg(PDUData);
+		if(nRecvBytes <= 0){
+			//ALOGE(TAG, __FUNCTION__, "Error Receiving ISOTP PDU messages");
+			;
+		}else {
+			ALOGD(TAG, __FUNCTION__, "New Message received");
+			CanDrvInst->printCanFrame(PDUData, nRecvBytes);
+			//Put in appropriate CAN FIFO for later processing
+			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
+			//Should be done in Locked Context
+#ifdef CANDATALOGGER
+			CanDrvInst->LogCanMsgToFile(PDUData, nRecvBytes, CeCanDir_RX);
+#endif
+			if(CanDrvInst->CANFifo->EnqueueMessage((void *)PDUData, nRecvBytes) == false) {
+				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
+			}
+		}
+	    //unlock Context
+		nanosleep(&CanRecvTimer, NULL);
+	}
+	pthread_exit(NULL);
+}
+
+//RAW, J1939, NMEA2000, SmCrft Protocols RX Handler Routine
 void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 {
 	CANDrv * CanDrvInst = static_cast<CANDrv *>(context);
@@ -209,7 +258,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
 #ifdef CANDATALOGGER
-			CanDrvInst->LogCanMsgToFile((void*)&RxCanMsg, sizeof(struct can_frame), CeCanDir_RX);
+			CanDrvInst->LogCanMsgToFile(RxCanMsg, CeCanDir_RX);
 #endif
 			RxCanTstmpMsg.RxCanMsg = RxCanMsg;
 			RxCanTstmpMsg.ulMsgTstamp = CanDrvInst->getCANMsgTimestamp();
@@ -226,7 +275,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 {
 	char BufferData[1024]={0};
-	char FieldVal[100]={0};
+	char FieldVal[10]={0};
 	ALOGD(TAG, __FUNCTION__, "ArbId = 0x%08X", TxCanMsg.can_id);
 	ALOGD(TAG, __FUNCTION__, "Data Length Code = %d", (int)TxCanMsg.can_dlc);
 	for(int j=0; j < (TxCanMsg.can_dlc-1); j++) {
@@ -234,6 +283,21 @@ void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 		strcat(BufferData,FieldVal);
 	}
 	sprintf(FieldVal,"0x%02X",(int)TxCanMsg.data[TxCanMsg.can_dlc-1]);
+	strcat(BufferData,FieldVal);
+	ALOGD(TAG, __FUNCTION__, "Data Buffer = %s", BufferData);
+}
+
+void CANDrv::printCanFrame(const unsigned char * Buf, unsigned long ulLen)
+{
+	char BufferData[1024]={0};
+	char FieldVal[10]={0};
+	ALOGD(TAG, __FUNCTION__, "PDU ID = 0x%08X", mDiagRXID);
+	ALOGD(TAG, __FUNCTION__, "PDU Length Code = %d", ulLen);
+	for(unsigned int j=0; j < (ulLen-1); j++) {
+		sprintf(FieldVal,"0x%02X-",(int)Buf[j]);
+		strcat(BufferData,FieldVal);
+	}
+	sprintf(FieldVal,"0x%02X",(int)Buf[ulLen-1]);
 	strcat(BufferData,FieldVal);
 	ALOGD(TAG, __FUNCTION__, "Data Buffer = %s", BufferData);
 }
@@ -248,7 +312,41 @@ void CANDrv::StopCANDriver()
 	setCANStatus(false);
 }
 
-void CANDrv::LogCanMsgToFile(const void * Msg, unsigned long ulLen, CeCanMsgDir MsgDir)
+void CANDrv::LogCanMsgToFile(const unsigned char * Msg, unsigned long ulLen, CeCanMsgDir MsgDir)
+{
+	string BufferData;
+	std::stringstream CanString;
+	CanString << getCANMsgTimestamp();
+	CanString << "\t";
+	if(MsgDir == CeCanDir_TX) {
+		CanString << "TX";
+	}else {
+		CanString << "RX";
+	}
+	CanString << "\t";
+	
+	CanString << "ISOTP";
+	
+	CanString << "\t";
+	
+	
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
+			  << std::hex << mDiagRXID;
+	CanString << "\t";
+	CanString << ulLen;
+	CanString << "\t";
+	for(unsigned int j=0; j < (ulLen-1); j++) {
+		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+				  << std::hex << (int)Msg[j];
+		CanString << " - ";
+	}
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+			  << std::hex << (int)Msg[ulLen-1];
+	BufferData = CanString.str();
+	CanDataLogger->WriteLogData(BufferData, true);
+}
+
+void CANDrv::LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir)
 {
 	string BufferData;
 	std::stringstream CanString;
@@ -263,49 +361,42 @@ void CANDrv::LogCanMsgToFile(const void * Msg, unsigned long ulLen, CeCanMsgDir 
 	
 	if(mCanProtocol == CAN_J1939_PROTO) {
 		CanString << "J1939";
-	}else if(mCanProtocol == CAN_ISOTP) {
-		CanString << "ISOTP";
-	}else {
+	}else if(mCanProtocol == CAN_RAW) {
 		CanString << "RAW";
+	}else {
+		CanString << "Monitor";
 	}
 	CanString << "\t";
 
-	if(mCanProtocol == CAN_ISOTP) {
-		;
-		
-	} else { //All protocols other than ISOTP
-		struct can_frame CanMsg;
-		memcpy((void*)&CanMsg, Msg, sizeof(struct can_frame));
-		if((CanMsg.can_id & CAN_SFF_MASK) == CanMsg.can_id) { //CAN Standard Frame <= 0x7FF
-			CanString << "STD";
-		} else if ((CanMsg.can_id & CAN_EFF_FLAG) == CAN_EFF_FLAG){ //CAN Extended Frame <= 0x1FFFFFFF & > 0x7FF
-			CanString << "EXT";
-		}
-		CanString << "\t";
-		if((CanMsg.can_id & CAN_RTR_FLAG) == CAN_RTR_FLAG) {
-			CanString << "RTR"; //CAN Remote Transmission Request
-		}
-		CanString << "\t";
-		if ((CanMsg.can_id & CAN_ERR_FLAG) == CAN_ERR_FLAG){ //CAN Error Frame
-			CanString << "ERR";
-		}
-		CanString << "\t";
-		
-		
-		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
-				  << std::hex << CanMsg.can_id;
-		CanString << "\t";
-		CanString << (int)CanMsg.can_dlc;
-		CanString << "\t";
-		for(int j=0; j < (CanMsg.can_dlc-1); j++) {
-			CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
-					  << std::hex << (int)CanMsg.data[j];
-			CanString << " - ";
-		}
-		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
-				  << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
-		BufferData = CanString.str();
+	if((CanMsg.can_id & CAN_SFF_MASK) == CanMsg.can_id) { //CAN Standard Frame <= 0x7FF
+		CanString << "STD";
+	} else if ((CanMsg.can_id & CAN_EFF_FLAG) == CAN_EFF_FLAG){ //CAN Extended Frame <= 0x1FFFFFFF & > 0x7FF
+		CanString << "EXT";
 	}
+	CanString << "\t";
+	if((CanMsg.can_id & CAN_RTR_FLAG) == CAN_RTR_FLAG) {
+		CanString << "RTR"; //CAN Remote Transmission Request
+	}
+	CanString << "\t";
+	if ((CanMsg.can_id & CAN_ERR_FLAG) == CAN_ERR_FLAG){ //CAN Error Frame
+		CanString << "ERR";
+	}
+	CanString << "\t";
+	
+	
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
+			  << std::hex << CanMsg.can_id;
+	CanString << "\t";
+	CanString << (int)CanMsg.can_dlc;
+	CanString << "\t";
+	for(int j=0; j < (CanMsg.can_dlc-1); j++) {
+		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+				  << std::hex << (int)CanMsg.data[j];
+		CanString << " - ";
+	}
+	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)
+			  << std::hex << (int)CanMsg.data[CanMsg.can_dlc-1];
+	BufferData = CanString.str();
 	CanDataLogger->WriteLogData(BufferData, true);
 }
 

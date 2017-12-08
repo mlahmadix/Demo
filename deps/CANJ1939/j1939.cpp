@@ -8,8 +8,8 @@
 using namespace std;
 using namespace std::chrono;
 
-J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
-CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
+J1939Layer::J1939Layer(std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size):
+CANDrv(J1939_FifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
 mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX),//Take Default Max value
 mEffectiveDtcSuppNum(0)
@@ -29,9 +29,9 @@ mEffectiveDtcSuppNum(0)
 	}
 }
 
-J1939Layer::J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
+J1939Layer::J1939Layer(std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
                        const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize):
-CANDrv(CanFifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
+CANDrv(J1939_FifoName, CAN_J1939_PROTO, CanInfName, static_cast<unsigned long>(J1939_BaudRate), 0),
 mJ1939_Init(false),
 mEffectiveRxMsgNum(cstJ1939_Num_MsgRX)//Take Default Max value
 {
@@ -66,12 +66,12 @@ unsigned long J1939Layer::ulBuildExtCanId(unsigned char ucSA, unsigned short usP
 }
 
 
-bool J1939Layer::SendJ1939Msg(struct can_frame * TxCanMsg)
+bool J1939Layer::SendJ1939Msg(struct can_frame TxCanMsg)
 {
 	if(mJ1939_Init && getCANStatus()) {
 		//in J1939, we should send always Extended Frames
-		TxCanMsg->can_id |= CAN_EFF_FLAG;
-		return CanSendMsg((void*)TxCanMsg, TxCanMsg->can_dlc);
+		TxCanMsg.can_id |= CAN_EFF_FLAG;
+		return CanSendMsg(TxCanMsg);
 	}
 	else
 		return false;

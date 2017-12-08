@@ -107,16 +107,17 @@ typedef struct
 class J1939Layer: public CANDrv
 {
 	public:
-		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size);
-		J1939Layer(std::string CanFifoName, std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
+		J1939Layer(std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size);
+		J1939Layer(std::string CanInfName, const J1939_eRxDataInfo * J1939_RxDataParams, int size,
 				   const stDM_iDTCDataStruct* J1939_DtcDiagStruct, int Dtcsize);
 		~J1939Layer();
-		bool SendJ1939Msg(struct can_frame * TxCanMsg);
+		bool SendJ1939Msg(struct can_frame TxCanMsg);
 		void ForceStopCAN();
 		void UpdateDTCStatuses(char * ucDM_DTC_Data);
 		bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size);
 	
 	private:
+	    #define J1939_FifoName "J1939Fifo"
 		bool mJ1939_Init;
 		pthread_t J1939Thread;
 		static void * pvthJ1939ParseFrames_Exe (void* context);

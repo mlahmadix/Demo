@@ -38,11 +38,14 @@ class CANDrv
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 		int CanRecvMsg(struct can_frame &RxCanMsg);
-		bool CanSendMsg(const void * Buf, unsigned long ulLen);
+		int CanRecvMsg(unsigned char * DataBuff);
+		bool CanSendMsg(struct can_frame TxCanMsg);
+		bool CanSendMsg(const unsigned char * Buf, unsigned long ulLen);
 		virtual bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size) = 0;
 		bool getCANStatus();
 		void StopCANDriver();
 		void printCanFrame(struct can_frame TxCanMsg);
+		void printCanFrame(const unsigned char * Buf, unsigned long ulLen);
 		Fifo * CANFifo;
 		unsigned long long getCANMsgTimestamp();
 	private:
@@ -65,12 +68,14 @@ class CANDrv
 		unsigned long ulGetCanModeFlags() { return mulModeFlags;}
 		unsigned long ulGetCanInfIndex() { return muiCanInfIndex;}
 		static void * pvthCanReadRoutine_Exe (void* context);
+		static void * pvthIsotpReadRoutine_Exe (void* context);
 		DataFileLogger * CanDataLogger;
 		enum CeCanMsgDir {
 			CeCanDir_TX = 0,
 			CeCanDir_RX
 		}; 
-		void LogCanMsgToFile(const void * Msg, unsigned long ulLen, CeCanMsgDir MsgDir);
+		void LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir);
+		void LogCanMsgToFile(const unsigned char * Msg, unsigned long ulLen, CeCanMsgDir MsgDir);
 		
 
 };
