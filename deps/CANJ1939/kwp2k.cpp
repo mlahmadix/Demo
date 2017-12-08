@@ -35,10 +35,21 @@ void * kwp2k::pvthKwp2kParseFrames_Exe (void* context)
 {
 	kwp2k * kwp2kInst = static_cast<kwp2k *>(context);
 	struct timespec Kwp2kBaseTimer;
-	Kwp2kBaseTimer.tv_sec = 5;
-	Kwp2kBaseTimer.tv_nsec = 0;//1s for test Thread scheduling
+	Kwp2kBaseTimer.tv_sec = 0;
+	Kwp2kBaseTimer.tv_nsec = 5000000;//3ms for test Thread scheduling
+	struct CanPduTstamp RxPduTsTamp;
+	unsigned int uiSize = 0;
 	while(kwp2kInst->getCANStatus()) {
-		//ALOGE(TAG, __FUNCTION__, "CAN ISOTP Scheduling Thread");
+		if(kwp2kInst->CANFifo->DequeueMessage((void *)&RxPduTsTamp, &uiSize)){
+			if(uiSize > 1) {
+				kwp2kInst->printCanFrame(RxPduTsTamp.PduMsg.Data, RxPduTsTamp.PduMsg.ulPduLen);
+			}
+		}else {
+			//This is Tricky as we are in a Static context
+			RxPduTsTamp.ulPduTstamp = 0;
+			RxPduTsTamp.PduMsg.ulPduID = NO_CAN_ID;
+			RxPduTsTamp.PduMsg.ulPduLen = 0;
+		}
 		nanosleep(&Kwp2kBaseTimer, NULL);
 	}
 	return NULL;

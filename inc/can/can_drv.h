@@ -16,7 +16,23 @@
 
 #define CANDefaultTimeoutBase 5000 //5s for HeatBet messages
 #define CAN_J1939_PROTO 5
-#define ISOTP_BUFSIZE 5000  //MAX ISOTP Data Size
+#define ISOTP_BUFSIZE 4096  //MAX ISOTP Data Size
+#define NO_CAN_ID 0xFFFFFFFFU
+
+struct CanMsgTstamp {
+	struct can_frame RxCanMsg;
+	unsigned long long ulMsgTstamp;
+};
+struct CanPduFrame {
+	unsigned long ulPduID;
+	unsigned short ulPduLen;
+	unsigned char Data[ISOTP_BUFSIZE+1];
+};
+
+struct CanPduTstamp {
+	struct CanPduFrame PduMsg;
+	unsigned long long ulPduTstamp;
+};
 
 class CANDrv
 {
@@ -30,22 +46,18 @@ class CANDrv
 			CeCanDrv_NotInit = 0,
 			CeCanDrv_Init,
 		};
-		struct CanMsgTstamp {
-			struct can_frame RxCanMsg;
-			unsigned long long ulMsgTstamp;
-		};
 		bool mCanDriverStatus;
 		unsigned int iCANDrvInit;
 		inline void setCANStatus(bool Canstatus) { mCANStatus =  Canstatus; }
 		int CanRecvMsg(struct can_frame &RxCanMsg);
-		int CanRecvMsg(unsigned char * DataBuff);
+		int CanRecvMsg(unsigned char DataBuffDataBuff[ISOTP_BUFSIZE]);
 		bool CanSendMsg(struct can_frame TxCanMsg);
 		bool CanSendMsg(const unsigned char * Buf, unsigned long ulLen);
 		virtual bool setCanFilters(struct can_filter * AppliedFilters, unsigned int size) = 0;
 		bool getCANStatus();
 		void StopCANDriver();
 		void printCanFrame(struct can_frame TxCanMsg);
-		void printCanFrame(const unsigned char * Buf, unsigned long ulLen);
+		void printCanFrame(const unsigned char * Buf, unsigned short ulLen);
 		Fifo * CANFifo;
 		unsigned long long getCANMsgTimestamp();
 	private:
@@ -75,7 +87,7 @@ class CANDrv
 			CeCanDir_RX
 		}; 
 		void LogCanMsgToFile(struct can_frame CanMsg, CeCanMsgDir MsgDir);
-		void LogCanMsgToFile(const unsigned char * Msg, unsigned long ulLen, CeCanMsgDir MsgDir);
+		void LogCanMsgToFile(const unsigned char * Msg, unsigned short ulLen, CeCanMsgDir MsgDir);
 		
 
 };

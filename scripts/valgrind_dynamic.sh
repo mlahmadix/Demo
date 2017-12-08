@@ -11,7 +11,7 @@ then
 fi
 
 # Should be compiled with Debugging symbols (-g)
-cmd="valgrind --leak-check=full --leak-resolution=high --show-leak-kinds=all build/exe/HelloWorld"
+cmd="valgrind --leak-check=full --leak-resolution=high build/exe/HelloWorld"
 nohup $cmd &
 bg_pid=$!
 

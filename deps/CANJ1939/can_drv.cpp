@@ -32,10 +32,10 @@ mDiagTXID(0)
 			iCANDrvInit = CeCanDrv_Init;
 			setCANStatus(true);
 			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
 			CanDataLogger = new DataFileLogger(FifoName, FifoName+".log", false);
 #endif
+			pthread_create(&Can_Thread, NULL, pvthCanReadRoutine_Exe, this);
 		}
 	}
 }
@@ -62,10 +62,10 @@ mDiagTXID(ulTxID)
 			iCANDrvInit = CeCanDrv_Init;
 			setCANStatus(true);
 			CANFifo = new Fifo(CANFIFODepth, FifoName.c_str());
-			pthread_create(&Can_Thread, NULL, pvthIsotpReadRoutine_Exe, this);
 #ifdef CANDATALOGGER
 			CanDataLogger = new DataFileLogger(FifoName, FifoName+".log", false);
 #endif
+			pthread_create(&Can_Thread, NULL, pvthIsotpReadRoutine_Exe, this);
 		}
 	}
 }
@@ -159,9 +159,9 @@ bool CANDrv::initCanDevice(string CanInfName)
 	return true;
 }
 
-int CANDrv::CanRecvMsg(unsigned char * DataBuff)
+int CANDrv::CanRecvMsg(unsigned char DataBuff[ISOTP_BUFSIZE])
 {
-	return read(sockCanfd, DataBuff, ISOTP_BUFSIZE);
+	return read(sockCanfd, DataBuff, ISOTP_BUFSIZE-1);
 }
 
 int CANDrv::CanRecvMsg(struct can_frame &RxCanMsg)
@@ -211,24 +211,28 @@ void * CANDrv::pvthIsotpReadRoutine_Exe (void* context)
 	struct timespec CanRecvTimer;
 	CanRecvTimer.tv_sec = 0;
 	CanRecvTimer.tv_nsec = 1000000;
-	unsigned char PDUData[ISOTP_BUFSIZE]={0};
+	struct CanPduTstamp RxPduTsTamp;
 	while(CanDrvInst->mCANStatus)
 	{
-		int nRecvBytes = CanDrvInst->CanRecvMsg(PDUData);
+		bzero(RxPduTsTamp.PduMsg.Data, ISOTP_BUFSIZE);
+		long nRecvBytes = CanDrvInst->CanRecvMsg(RxPduTsTamp.PduMsg.Data);
 		if(nRecvBytes <= 0){
 			//ALOGE(TAG, __FUNCTION__, "Error Receiving ISOTP PDU messages");
 			;
 		}else {
-			ALOGD(TAG, __FUNCTION__, "New Message received");
-			CanDrvInst->printCanFrame(PDUData, nRecvBytes);
+			//ALOGD(TAG, __FUNCTION__, "New PDU Message received");
+			//CanDrvInst->printCanFrame(PDUData, nRecvBytes);
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
 #ifdef CANDATALOGGER
-			CanDrvInst->LogCanMsgToFile(PDUData, nRecvBytes, CeCanDir_RX);
+			CanDrvInst->LogCanMsgToFile(RxPduTsTamp.PduMsg.Data, nRecvBytes, CeCanDir_RX);
 #endif
-			if(CanDrvInst->CANFifo->EnqueueMessage((void *)PDUData, nRecvBytes) == false) {
-				ALOGE(TAG, __FUNCTION__, "Fail to queue CAN message");
+			RxPduTsTamp.PduMsg.ulPduID = CanDrvInst->mDiagRXID;
+			RxPduTsTamp.PduMsg.ulPduLen = (unsigned long)nRecvBytes;
+			RxPduTsTamp.ulPduTstamp = CanDrvInst->getCANMsgTimestamp();
+			if(CanDrvInst->CANFifo->EnqueueMessage((void *)&RxPduTsTamp, sizeof(unsigned long long)+8+(unsigned long)nRecvBytes) == false) {
+				ALOGE(TAG, __FUNCTION__, "Fail to queue PDU message");
 			}
 		}
 	    //unlock Context
@@ -248,12 +252,7 @@ void * CANDrv::pvthCanReadRoutine_Exe (void* context)
 	CanRecvTimer.tv_nsec = 1000000;
 	while(CanDrvInst->mCANStatus)
 	{
-		if(CanDrvInst->CanRecvMsg(RxCanMsg) < 0){
-			//ALOGE(TAG, __FUNCTION__, "Error Receiving CAN messages");
-			;
-		}else {
-			ALOGD(TAG, __FUNCTION__, "New Message received");
-			CanDrvInst->printCanFrame(RxCanMsg);
+		if(CanDrvInst->CanRecvMsg(RxCanMsg) > 0){
 			//Put in appropriate CAN FIFO for later processing
 			//in upper layers: J1939, SmartCraft, NMEA2000, KWP2k, DiagOnCan
 			//Should be done in Locked Context
@@ -287,19 +286,10 @@ void CANDrv::printCanFrame(struct can_frame TxCanMsg)
 	ALOGD(TAG, __FUNCTION__, "Data Buffer = %s", BufferData);
 }
 
-void CANDrv::printCanFrame(const unsigned char * Buf, unsigned long ulLen)
+void CANDrv::printCanFrame(const unsigned char * Buf, unsigned short ulLen)
 {
-	char BufferData[1024]={0};
-	char FieldVal[10]={0};
 	ALOGD(TAG, __FUNCTION__, "PDU ID = 0x%08X", mDiagRXID);
 	ALOGD(TAG, __FUNCTION__, "PDU Length Code = %d", ulLen);
-	for(unsigned int j=0; j < (ulLen-1); j++) {
-		sprintf(FieldVal,"0x%02X-",(int)Buf[j]);
-		strcat(BufferData,FieldVal);
-	}
-	sprintf(FieldVal,"0x%02X",(int)Buf[ulLen-1]);
-	strcat(BufferData,FieldVal);
-	ALOGD(TAG, __FUNCTION__, "Data Buffer = %s", BufferData);
 }
 
 bool CANDrv::getCANStatus()
@@ -312,8 +302,10 @@ void CANDrv::StopCANDriver()
 	setCANStatus(false);
 }
 
-void CANDrv::LogCanMsgToFile(const unsigned char * Msg, unsigned long ulLen, CeCanMsgDir MsgDir)
+void CANDrv::LogCanMsgToFile(const unsigned char * Msg, unsigned short ulLen, CeCanMsgDir MsgDir)
 {
+	if(ulLen <= 1)
+		return;
 	string BufferData;
 	std::stringstream CanString;
 	CanString << getCANMsgTimestamp();
@@ -333,7 +325,7 @@ void CANDrv::LogCanMsgToFile(const unsigned char * Msg, unsigned long ulLen, CeC
 	CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned long))
 			  << std::hex << mDiagRXID;
 	CanString << "\t";
-	CanString << ulLen;
+	CanString << std::dec << (unsigned short)ulLen;
 	CanString << "\t";
 	for(unsigned int j=0; j < (ulLen-1); j++) {
 		CanString << "0x" << std::setfill ('0') << std::setw(sizeof(unsigned char)*2)

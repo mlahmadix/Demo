@@ -153,17 +153,6 @@ int main(){
     	  TxCanMsg.data[j] = 0x30 + j;
       J1939LayerApp->SendJ1939Msg(TxCanMsg);
       
-      MainDataDisplayTimer.tv_sec = 0;
-	  MainDataDisplayTimer.tv_nsec = 300000000;
-	  nanosleep(&MainDataDisplayTimer, NULL);
-      
-      //Example of Standard CAN Message sending
-      TxCanMsg.can_id = 0x743;
-      TxCanMsg.can_dlc = 8;
-      for(int k = 0; k < TxCanMsg.can_dlc; k++)
-    	  TxCanMsg.data[k] = 0x30 + k;
-      J1939LayerApp->SendJ1939Msg(TxCanMsg);
-      
       std::shared_ptr<NmeaParser> NmeaGpsP(new NmeaParser("/dev/tty0", 115200));
       
 	  //Shared memory testing Structure
