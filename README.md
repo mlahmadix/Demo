@@ -14,6 +14,7 @@ to run the full demo, please run the following command :
  ./run_demo.sh
  
  Miscallenous Tools:
+ 
  1- Static Analysis check using cppcheck, please run :
  
  ./cmake_cleanup.sh check
