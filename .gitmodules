@@ -1,0 +1,6 @@
+[submodule "j1939_driver"]
+	path = j1939_driver
+	url = https://github.com/imedardia/j1939_driver
+[submodule "linux-can"]
+	path = linux-can
+	url = https://github.com/linux-can/can-utils.git
