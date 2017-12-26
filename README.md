@@ -1,5 +1,6 @@
 [![Build Status : ](https://api.travis-ci.org/mlahmadix/Demo.svg?branch=master)](https://api.travis-ci.org/mlahmadix/Demo.svg)
 
+
 to build the whole project, please run :
 
  ./build_project.sh build
@@ -31,9 +32,9 @@ to run the full demo, please run the following command :
 In order to be able to use and simulate the SAE-J1939 CAN protocol implemented
 in this demo, please refer to the following steps:
 
-1- clone the J1939 Linux kernel module project
+1-  git submodule update --init --recursive
 
-     git clone https://github.com/imedardia/j1939_driver
+    cd j1939_driver
      
 2- build the module:
 
@@ -43,7 +44,7 @@ in this demo, please refer to the following steps:
 
    sudo -i
    
-   insmod /lib/modules/<kernel-headers-version>/kernel/net/can/can.ko (This step is used to avoir CAN external symbols lookup failure)
+   insmod /lib/modules/`uname -r`/kernel/net/can/can.ko (This step is used to avoir CAN external symbols lookup failure)
    
    exit
    
@@ -52,7 +53,7 @@ in this demo, please refer to the following steps:
 
 4- Modifying can-utils "cansend" tool code source
 
-   git clone https://github.com/linux-can/can-utils.git
+  cd  linux-can
 
 5- Apply the patch under can-utils/0001-W-A-Support-of-SAE-J1939-protocol.patch
 
@@ -67,7 +68,7 @@ in this demo, please refer to the following steps:
 
 sudo -i
 
-insmod /lib/modules/<kernel-headers-version>/kernel/net/can/can-gw.ko
+insmod /lib/modules/`uname -r`/kernel/net/can/can-gw.ko
 
 If vcan module is not installed, please run: sudo modprobe vcan
 
